@@ -23,14 +23,14 @@ from tensorboardX import SummaryWriter
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-parser = argparse.ArgumentParser(description='HMDB51 spatial stream on resnet101')
+parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet50')
 parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs')
 parser.add_argument('--batch-size', default=32, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='evaluate model on validation set')
-parser.add_argument('--resume', default='./record/spatial/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
-parser.add_argument('--num_classes', default=51, type=int, metavar='N', help='number of classes in the dataset')
+parser.add_argument('--num_classes', default=20, type=int, metavar='N', help='number of classes in the dataset')
 
 def main():
     global arg
@@ -41,11 +41,9 @@ def main():
     data_loader = dataloader.spatial_dataloader(
                         BATCH_SIZE=arg.batch_size,
                         num_workers=8,
-                        path='/media/lili/fce9875a-a5c8-4c35-8f60-db60be29ea5d/THUMOS14/THUMOS14_10fps_imgs/',
-                        train_ucf_list ='./thumos14_list/new_Thumos_vals.txt',
-                        test_ucf_list = './thumos14_list/new_Thumos_test.txt',
-                        ucf_split ='01', 
-                        )
+                        path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
+                        train_list ='./thumos14_list/new_Thumos_val.txt',
+                        test_list = './thumos14_list/new_Thumos_test.txt')
     
     train_loader, test_loader, test_video = data_loader.run()
     #Model 
@@ -109,11 +107,15 @@ class Spatial_CNN():
         self.resume_and_evaluate()
         cudnn.benchmark = True
         
-        log_dir = os.path.join('./train_cnn_log', 'hmdb51_3_classes'+time.strftime("_%b_%d_%H_%M", time.localtime()))
+        log_dir = os.path.join('./train_cnn_log', 'thumos14_resnet50'+time.strftime("_%b_%d_%H_%M", time.localtime()))
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         writer = SummaryWriter(log_dir)
+
+        checkpoint_dir = "./record/spatial"
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
 
         for self.epoch in range(self.start_epoch, self.nb_epochs):
             train_prec1, train_loss=self.train_1epoch()
@@ -224,6 +226,7 @@ class Spatial_CNN():
             nb_data = preds.shape[0]
             for j in range(nb_data):
                 videoName = keys[j]#.split('/',1)[0]
+               
                 if videoName not in self.dic_video_level_preds.keys():
                     self.dic_video_level_preds[videoName] = preds[j,:]
                 else:
@@ -248,6 +251,8 @@ class Spatial_CNN():
         video_level_labels = np.zeros(len(self.dic_video_level_preds))
         ii=0
         for name in sorted(self.dic_video_level_preds.keys()):
+            print("name: ",name)
+
             preds = self.dic_video_level_preds[name]
 #            label = int(self.test_video[name])-1
             label = (self.test_video[name])

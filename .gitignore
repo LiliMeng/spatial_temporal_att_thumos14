@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
+dataloader/__pycache__/
+record/
+train_cnn_log/
+
 
