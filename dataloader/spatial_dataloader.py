@@ -112,7 +112,6 @@ class spatial_dataloader():
             if split == 'train':
                 
                 if new_videoname in self.train_video.keys():
-                    print('found one dup on train')
                     dup_keys_train.append(new_videoname)
                 else:
                     video_path = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname)
@@ -127,15 +126,11 @@ class spatial_dataloader():
                     self.test_frame_count[new_videoname] = num_imgs
                     self.test_video[new_videoname] = label
         if split == 'train':
-            print('len train video before', len(self.train_video))
             for i in range(len(dup_keys_train)):
                 del self.train_video[dup_keys_train[i]]
-            print('len train video after', len(self.train_video))
         elif split == 'test':
-            print('len test video before', len(self.test_video))
             for i in range(len(dup_keys_test)):
                 del self.test_video[dup_keys_test[i]]
-            print('len test video after', len(self.test_video))
         else:
             raise Exception("no such split")
        
@@ -165,7 +160,7 @@ class spatial_dataloader():
         print('test video len:', len(self.test_video))
         for video in self.test_video:
             nb_frame = self.test_frame_count[video]
-            interval = int(nb_frame/1)
+            interval = int(nb_frame)
             #print("interval: ", interval)
             for i in range(1):
                 frame = i*interval
@@ -224,7 +219,7 @@ if __name__ == '__main__':
 
    for i, (sample, label) in enumerate(train_loader):
         
-        print("sample: ", sample)
+        print("sample.shape: ", sample)
         print("label: ", label)
         
 
