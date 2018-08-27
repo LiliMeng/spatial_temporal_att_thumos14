@@ -29,7 +29,7 @@ def make_new_list(img_list, new_img_list, class_label):
 
 def main():
 
-	list_folder_path = "/media/lili/fce9875a-a5c8-4c35-8f60-db60be29ea5d/THUMOS14/TH14_Temporal_Annotations_Test/annotations/annotation/"
+	list_folder_path = "/media/dataDisk/THUMOS14/TH14_Temporal_Annotations_Test/annotations/annotation/"
 	new_val_img_list = "./new_Thumos_test.txt"
 
 	label =0

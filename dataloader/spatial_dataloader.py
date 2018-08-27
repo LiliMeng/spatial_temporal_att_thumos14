@@ -4,6 +4,9 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import random
 from skimage import io, color, exposure
+from pathlib import Path
+
+
 
 class spatial_dataset(Dataset):  
     def __init__(self, dic, root_dir, mode, transform=None):
@@ -37,29 +40,27 @@ class spatial_dataset(Dataset):
         return transformed_img
 
     def __getitem__(self, idx):
+        
+        
+        label = list(self.values)[idx]
+        video_name, start_frame, end_frame, nb_frames = list(self.keys)[idx].split(' ')
 
         if self.mode == 'train':
-            
-            video_name, start_frame, end_frame, nb_frames = list(self.keys)[idx].split(' ')
 
             start_frame = int(start_frame)
+            end_frame = int(end_frame)
             nb_frames = int(nb_frames)
-            
+
             clips = []
-        
+
+            #if start_frame ==0:
+            start_frame += 1
+            #end_frame += 1
+            
             clips.append(random.randint(start_frame, start_frame+int(nb_frames/3)))
             clips.append(random.randint(start_frame + int(nb_frames/3), start_frame +int(nb_frames*2/3)))
-            clips.append(random.randint(start_frame + int(nb_frames*2/3),start_frame + nb_frames))
-            
-        elif self.mode == 'test':
-            video_name, start_frame, end_frame, nb_clips = list(self.keys)[idx].split(' ')
-            index = abs(int(nb_clips))
-        else:
-            raise ValueError('There are only train and val mode')
+            clips.append(random.randint(start_frame + int(nb_frames*2/3),int(end_frame)))
 
-        label = list(self.values)[idx]
-        
-        if self.mode=='train':
             data ={}
             for i in range(len(clips)):
                 key = 'img'+str(i)
@@ -67,10 +68,14 @@ class spatial_dataset(Dataset):
                 data[key] = self.load_image(video_name, index)
 
             sample = (data, label)
-        elif self.mode=='test':
-
+            
+                          
+        elif self.mode == 'test':
+            
+            index = abs(int(nb_frames))
             data = self.load_image(video_name,index)
-            sample = (video_name, data, label)
+            new_videoname = video_name + " " + start_frame + " "+end_frame
+            sample = (new_videoname, data, label)
         else:
             raise ValueError('There are only train and val mode')
            
@@ -100,6 +105,8 @@ class spatial_dataloader():
         
         dup_keys_train = []
         dup_keys_test = []
+        not_exist_frame_video_train = []
+        not_exist_frame_video_test = []
         for i, line in enumerate(lines):
             videoname = line.split(' ')[0]
             label = int(line.split(' ')[1])
@@ -109,37 +116,50 @@ class spatial_dataloader():
             num_imgs = end_frame - start_frame
             
             new_videoname = videoname + " "+str(start_frame) +" "+str(end_frame)
-            if split == 'train':
-                
+            
+            if split == 'train':   
+                last_frame_name_train = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
+                if not Path(last_frame_name_train).is_file():
+                    not_exist_frame_video_train.append(new_videoname)
+
                 if new_videoname in self.train_video.keys():
                     dup_keys_train.append(new_videoname)
                 else:
                     video_path = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname)
                     self.train_frame_count[new_videoname] = num_imgs
                     self.train_video[new_videoname] = label
-            else:
-                
+            elif split == 'test': 
+                last_frame_name_test = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
+                if not Path(last_frame_name_test).is_file():
+                    not_exist_frame_video_test.append(new_videoname)
                 if new_videoname in self.test_video.keys():
                     dup_keys_test.append(new_videoname)
                 else:
                     video_path = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname)
                     self.test_frame_count[new_videoname] = num_imgs
                     self.test_video[new_videoname] = label
+            else:
+                raise Exception("no such mode exist, only support train and test")
+
         if split == 'train':
+            for i in range(len(not_exist_frame_video_train)):
+                del self.train_video[not_exist_frame_video_train[i]]
             for i in range(len(dup_keys_train)):
                 del self.train_video[dup_keys_train[i]]
         elif split == 'test':
+            for i in range(len(not_exist_frame_video_test)):
+                del self.test_video[not_exist_frame_video_test[i]]
             for i in range(len(dup_keys_test)):
                 del self.test_video[dup_keys_test[i]]
         else:
-            raise Exception("no such split")
+            raise Exception("no such split, only train and test mode is provided")
        
 
     def run(self):
         self.load_frame_count('train')
         self.load_frame_count('test')
         self.get_training_dic()
-        self.val_sample()
+        self.val_sample(num_frame_per_video=3)
         train_loader = self.train()
         val_loader = self.validate()
 
@@ -154,18 +174,18 @@ class spatial_dataloader():
             key = video+' '+ str(nb_frame)
             self.dic_training[key] = self.train_video[video]
                     
-    def val_sample(self):
+    def val_sample(self, num_frame_per_video):
         print('==> sampling testing frames')
         self.dic_testing={}
         print('test video len:', len(self.test_video))
         for video in self.test_video:
-            nb_frame = self.test_frame_count[video]
-            interval = int(nb_frame)
-            #print("interval: ", interval)
-            for i in range(1):
+            nb_frame = self.test_frame_count[video]-num_frame_per_video+1
+            
+            interval = int(nb_frame/num_frame_per_video)
+           
+            for i in range(num_frame_per_video):
                 frame = i*interval
                 key = video+ ' '+str(frame+1)
-               
                 self.dic_testing[key] = self.test_video[video]      
 
     def train(self):
@@ -177,15 +197,15 @@ class spatial_dataloader():
                 transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
                 ]))
         print('==> Training data :',len(training_set),'frames')
-        print(training_set[1][0]['img1'].size())
+
+        #print(training_set[1][0]['img1'].size())
 
         train_loader = DataLoader(
             dataset=training_set, 
             batch_size=self.BATCH_SIZE,
             shuffle=True,
             num_workers=self.num_workers)
-
-
+            
         return train_loader
 
     def validate(self):
@@ -210,17 +230,21 @@ class spatial_dataloader():
 
 if __name__ == '__main__':
     
-   dataloader = spatial_dataloader( BATCH_SIZE=4,
+   dataloader = spatial_dataloader( BATCH_SIZE=32,
                                     num_workers=8,
-                                    path='/media/lili/fce9875a-a5c8-4c35-8f60-db60be29ea5d/THUMOS14/THUMOS14_10fps_imgs/',
+                                    path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
                                     train_list ='../thumos14_list/new_Thumos_val.txt',
                                     test_list = '../thumos14_list/new_Thumos_test.txt')
    train_loader,val_loader,test_video = dataloader.run()
 
-   for i, (sample, label) in enumerate(train_loader):
+
+   
+   for i, (data, label) in enumerate(train_loader):
+        print("train i", i)
+
+   for i, (keys, data, label) in enumerate(val_loader):
         
-        print("sample.shape: ", sample)
-        print("label: ", label)
+        print("test i", i)
         
 
-        break
+   
