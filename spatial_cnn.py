@@ -46,6 +46,11 @@ def main():
                         test_list = './thumos14_list/new_Thumos_test.txt')
     
     train_loader, test_loader, test_video = data_loader.run()
+
+    checkpoint_dir = "./record/spatial"
+    if not os.path.exists(checkpoint_dir):
+        os.makedirs(checkpoint_dir)
+
     #Model 
     model = Spatial_CNN(
                         nb_epochs=arg.epochs,
@@ -113,10 +118,7 @@ class Spatial_CNN():
             os.makedirs(log_dir)
         writer = SummaryWriter(log_dir)
 
-        checkpoint_dir = "./record/spatial"
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
-
+        
         for self.epoch in range(self.start_epoch, self.nb_epochs):
             train_prec1, train_loss=self.train_1epoch()
             prec1, val_loss = self.validate_1epoch()
@@ -251,8 +253,7 @@ class Spatial_CNN():
         video_level_labels = np.zeros(len(self.dic_video_level_preds))
         ii=0
         for name in sorted(self.dic_video_level_preds.keys()):
-            print("name: ",name)
-
+            
             preds = self.dic_video_level_preds[name]
 #            label = int(self.test_video[name])-1
             label = (self.test_video[name])
