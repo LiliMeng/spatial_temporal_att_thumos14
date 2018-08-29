@@ -179,8 +179,8 @@ def main():
 				transforms.ToTensor(),
 				transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-	all_frames, all_frame_names, all_labels = load_frames(img_list = "./thumos14_list/new_Thumos_test.txt",
-				video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/THUMOS14_test_10fps_imgs",
+	all_frames, all_frame_names, all_labels = load_frames(img_list = "./thumos14_list/new_Thumos_val.txt",
+				video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/THUMOS14_val_10fps_imgs",
 				num_frames=arg.num_frames)
 
 	feature_dir = "./saved_features"
@@ -236,9 +236,9 @@ def main():
 		print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
 			toal_num_video,top1.avg, top5.avg))
 
-		np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
-		np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
-		np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
+		np.save('./spa_features/train/features/features_{}.npy'.format(i), features_np)
+		np.save('./spa_features/train/names/name_{}.npy'.format(i), all_frame_names[i])
+		np.save('./spa_features/train/labels/label_{}.npy'.format(i), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)
