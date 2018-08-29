@@ -29,8 +29,8 @@ def make_new_list(img_list, new_img_list, class_label):
 
 def main():
 
-	list_folder_path = "/media/dataDisk/THUMOS14/TH14_Temporal_Annotations_Test/annotations/annotation/"
-	new_val_img_list = "./new_Thumos_test.txt"
+	list_folder_path = "/media/dataDisk/THUMOS14/validataion_annotation/annotation/"
+	new_val_img_list = "./new_Thumos_val.txt"
 
 	label =0
 	for val_img_name in sorted(os.listdir(list_folder_path)):

@@ -121,7 +121,7 @@ class spatial_dataloader():
                 last_frame_name_train = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
                 if not Path(last_frame_name_train).is_file():
                     not_exist_frame_video_train.append(new_videoname)
-
+                    print("no such file exist in train: ", new_videoname)
                 if new_videoname in self.train_video.keys():
                     dup_keys_train.append(new_videoname)
                 else:
@@ -131,6 +131,7 @@ class spatial_dataloader():
             elif split == 'test': 
                 last_frame_name_test = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
                 if not Path(last_frame_name_test).is_file():
+                    print("no such file exist in the test: ", new_videoname)
                     not_exist_frame_video_test.append(new_videoname)
                 if new_videoname in self.test_video.keys():
                     dup_keys_test.append(new_videoname)

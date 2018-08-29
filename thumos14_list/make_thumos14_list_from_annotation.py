@@ -1,7 +1,26 @@
+'''
+make thumos14 list for ResNet spatial CNN training
+
+Author: Lili Meng
+Date: August 26th, 2018
+'''
+
 import numpy as np
 import os
 
-def make_new_list(img_list, new_img_list, class_label):
+def class_mapping_dict():
+	mapping_list = "thumos_class_mapping.txt"
+	lines = [line.strip() for line in open(mapping_list).readlines()]
+
+	mapping_dict = {}
+	for line in lines:
+		old_key = int(line.split(' ')[0])
+		new_key = int(line.split(' ')[1])
+		mapping_dict[old_key] = new_key
+
+	return mapping_dict
+
+def make_new_list(img_list, new_img_list, class_label, mapping_dict):
 	
 	new_file_with_img_num = open(new_img_list, "a")
 	lines = [line.strip() for line in open(img_list).readlines()]
@@ -11,7 +30,7 @@ def make_new_list(img_list, new_img_list, class_label):
 	    blank = line.split(' ')[1]
 	    start_time = line.split(' ')[2]
 	    end_time = line.split(' ')[3]
-	    label = str(class_label)
+	    label = str(mapping_dict[class_label]-1)
 
 	    print("videoname: ", videoname)
 	    print("start_time: ", start_time)
@@ -22,13 +41,17 @@ def make_new_list(img_list, new_img_list, class_label):
 
 def main():
 
-	list_folder_path = "/media/lili/fce9875a-a5c8-4c35-8f60-db60be29ea5d/THUMOS14/TH14_Temporal_Annotations_Test/annotations/annotation/"
+	mapping_dict = class_mapping_dict()
+	print("mapping_dict")
+	print(mapping_dict)
+
+	list_folder_path = "/media/dataDisk/THUMOS14/TH14_Temporal_Annotations_Test/annotations/annotation/"
 	new_val_img_list = "./new_Thumos_test.txt"
 
-	label =0
+	label =1
 	for val_img_name in sorted(os.listdir(list_folder_path)):
 		val_img_folder = os.path.join(list_folder_path, val_img_name)
-		make_new_list(val_img_folder, new_val_img_list, label)
+		make_new_list(val_img_folder, new_val_img_list, label, mapping_dict)
 		label+=1
 
 if __name__== "__main__":
