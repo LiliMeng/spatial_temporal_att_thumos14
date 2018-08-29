@@ -249,7 +249,7 @@ def main():
 							mode ='train',
 							dataset='thumos14')
 	# load test data
-	test_data_dir = '../spa_features/val'
+	test_data_dir = '../spa_features/test'
 	test_csv_file = './feature_list/feature_test_list.csv'
 	test_data_loader = get_loader(data_dir=test_data_dir, 
 							csv_file = test_csv_file, 
