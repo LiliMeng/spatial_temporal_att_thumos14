@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 dataloader/__pycache__/
 record/
-train_cnn_log/
+finetune_network_extract_features/train_cnn_log/
 dataloader/__pycache__
 spa_features/
+spatial_temporal_attention/Conv_thumos14_tensorboard/
