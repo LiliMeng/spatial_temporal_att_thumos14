@@ -3,5 +3,5 @@ __pycache__/
 dataloader/__pycache__/
 record/
 train_cnn_log/
-
-
+dataloader/__pycache__
+spa_features/
