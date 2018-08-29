@@ -73,32 +73,36 @@ def load_frames(img_list, video_root_path, num_frames=15):
         
 
         img_interval = int(total_num_imgs_per_video/num_frames)
-        img_index_list = list(range(1, total_num_imgs_per_video+1, img_interval))
+
+        if img_interval != 0:
+        	img_index_list = list(range(1, total_num_imgs_per_video+1, img_interval))
+        else:
+        	img_index_list = list(range(1, total_num_imgs_per_video+1))
         
+        # if img_index_list is too large, remove some frames, else append the last frame
         if len(img_index_list) > num_frames:
             img_index_list = img_index_list[0:num_frames]
-
+        
         #assert(len(img_index_list)==num_frames)
 
         imgs_per_video_list = []
         imgs_names_per_video_list = []
         label_per_video_list = []
         for i in range(0, num_frames):
-            img_name = os.path.join(video_path,  str('%05d'%(img_index_list[i])) + '.jpg')
 
-            if not os.path.exists(img_name):
-            	img_name = os.path.join(video_path, str())
-            
+        	if len(img_index_list) >= num_frames:
+        		img_name = os.path.join(video_path,  str('%05d'%(img_index_list[i])) + '.jpg')
+        	else:
+        		img_name = os.path.join(video_path,  str('%05d'%(img_index_list[-1])) + '.jpg')
 
+        	img = Image.open(img_name).convert('RGB')
 
-            img = Image.open(img_name).convert('RGB')
-            try:
-                imgs_per_video_list.append(img)
-                imgs_names_per_video_list.append(img_name) 
-                
-            except:
-                print(os.path.join(path, str('%05d'%(index)) + '.jpg'))
-                img.close()
+        	try:
+        		imgs_per_video_list.append(img)
+        		imgs_names_per_video_list.append(img_name) 
+        	except:
+        		print(os.path.join(path, str('%05d'%(index)) + '.jpg'))
+        		img.close()
 
         frames_for_all_video_list.append(imgs_per_video_list)
         labels_for_all_video_list.append(label)
@@ -175,67 +179,66 @@ def main():
 				transforms.ToTensor(),
 				transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-	#all_frames, all_frame_names, all_labels = 
-	load_frames(img_list = "./thumos14_list/new_Thumos_test.txt",
+	all_frames, all_frame_names, all_labels = load_frames(img_list = "./thumos14_list/new_Thumos_test.txt",
 				video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/THUMOS14_test_10fps_imgs",
 				num_frames=arg.num_frames)
 
-	# feature_dir = "./saved_features"
+	feature_dir = "./saved_features"
 
-	# if not os.path.exists(feature_dir):
-	# 	os.makedirs(feature_dir)
+	if not os.path.exists(feature_dir):
+		os.makedirs(feature_dir)
 
-	# all_logits_list = []
-	# all_features_list = []
+	all_logits_list = []
+	all_features_list = []
 
-	# correct = 0
-	# top1 = AverageMeter()
-	# top5 = AverageMeter()
+	correct = 0
+	top1 = AverageMeter()
+	top5 = AverageMeter()
 
-	# toal_num_video = len(all_frames)
-	# model.eval()
+	toal_num_video = len(all_frames)
+	model.eval()
 
-	# for i in range(toal_num_video):
+	for i in range(toal_num_video):
 
-	# 	input_data = torch.stack([transform(frame) for frame in all_frames[i]])
+		input_data = torch.stack([transform(frame) for frame in all_frames[i]])
 
-	# 	input_var = Variable(input_data.view(-1, 3, input_data.size(2), input_data.size(3)), volatile=True).cuda()
+		input_var = Variable(input_data.view(-1, 3, input_data.size(2), input_data.size(3)), volatile=True).cuda()
 
-	# 	# 4. extract featrues before the fully connected layer
-	# 	features_before_fc = FeatureExtractor(model)
+		# 4. extract featrues before the fully connected layer
+		features_before_fc = FeatureExtractor(model)
 
-	# 	logits = model(input_var)
+		logits = model(input_var)
 
-	# 	features = features_before_fc(input_var)
+		features = features_before_fc(input_var)
 
-	# 	features = features.view(arg.num_frames, 2048, 49)
+		features = features.view(arg.num_frames, 2048, 49)
 
-	# 	logits_np = logits.data.cpu().numpy()
+		logits_np = logits.data.cpu().numpy()
 
-	# 	features_np = np.squeeze(features.data.cpu().numpy())
+		features_np = np.squeeze(features.data.cpu().numpy())
 
-	# 	all_logits_list.append(logits_np)
+		all_logits_list.append(logits_np)
 
-	# 	all_features_list.append(features_np)
-	# 	print("features_np.shape: ", features_np.shape)
+		all_features_list.append(features_np)
+		print("features_np.shape: ", features_np.shape)
 
-	# 	per_video_logits = np.expand_dims(np.mean(logits_np,axis=0), axis=0)
-	# 	per_video_label = np.expand_dims(all_labels[i], axis=0)
+		per_video_logits = np.expand_dims(np.mean(logits_np,axis=0), axis=0)
+		per_video_label = np.expand_dims(all_labels[i], axis=0)
 
-	# 	per_video_logits = torch.from_numpy(per_video_logits)
-	# 	per_video_label  = torch.from_numpy(per_video_label)
+		per_video_logits = torch.from_numpy(per_video_logits)
+		per_video_label  = torch.from_numpy(per_video_label)
 
-	# 	prec1, prec5 = accuracy(per_video_logits, per_video_label, topk=(1, 5))
+		prec1, prec5 = accuracy(per_video_logits, per_video_label, topk=(1, 5))
 
-	# 	top1.update(prec1[0], 1)
-	# 	top5.update(prec5[0], 1)
+		top1.update(prec1[0], 1)
+		top5.update(prec5[0], 1)
 
-	# 	print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
-	# 		toal_num_video,top1.avg, top5.avg))
+		print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
+			toal_num_video,top1.avg, top5.avg))
 
-	# 	np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
-	# 	np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
-	# 	np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
+		np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
+		np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
+		np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)
