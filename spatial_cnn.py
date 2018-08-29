@@ -18,19 +18,20 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import dataloader.spatial_dataloader
 from utils import *
-from network import *
+from network import resnet101_pretrain_UCF101
 from tensorboardX import SummaryWriter
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet50')
 parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs')
-parser.add_argument('--batch-size', default=32, type=int, metavar='N', help='mini-batch size (default: 25)')
+parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='evaluate model on validation set')
 parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
-parser.add_argument('--num_classes', default=20, type=int, metavar='N', help='number of classes in the dataset')
+parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes in the dataset')
+parser.add_argument('--lr_patience', default=5, type=int, metavar='N', help='learning rate patience')
 
 def main():
     global arg
@@ -47,7 +48,7 @@ def main():
     
     train_loader, test_loader, test_video = data_loader.run()
 
-    checkpoint_dir = "./record/spatial"
+    checkpoint_dir = os.path.join("./record/spatial", "pretrain_ucf101")
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
 
@@ -64,7 +65,7 @@ def main():
                         test_video=test_video
     )
     #Training
-    model.run()
+    model.run(checkpoint_dir)
 
 class Spatial_CNN():
     def __init__(self, nb_epochs, lr, batch_size, resume, start_epoch, evaluate, train_loader, test_loader, test_video):
@@ -82,14 +83,15 @@ class Spatial_CNN():
     def build_model(self):
         print ('==> Build model and setup loss and optimizer')
         #build model
-        self.model = resnet50(pretrained=True, channel=3, num_classes=arg.num_classes).cuda()
+        self.model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
+
         #Loss function and optimizer
         self.criterion = nn.CrossEntropyLoss().cuda()
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, momentum=0.9)
         #self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=1,verbose=True)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=arg.lr_patience, verbose=True)
     
-    def resume_and_evaluate(self):
+    def resume_and_evaluate(self, checkpoint_dir):
         if self.resume:
             if os.path.isfile(self.resume):
                 print("==> loading checkpoint '{}'".format(self.resume))
@@ -104,15 +106,15 @@ class Spatial_CNN():
                 print("==> no checkpoint found at '{}'".format(self.resume))
         if self.evaluate:
             self.epoch = 0
-            prec1, val_loss = self.validate_1epoch()
+            prec1, val_loss = self.validate_1epoch(checkpoint_dir)
             return
 
-    def run(self):
+    def run(self, checkpoint_dir):
         self.build_model()
-        self.resume_and_evaluate()
+        #self.resume_and_evaluate(checkpoint_dir)
         cudnn.benchmark = True
         
-        log_dir = os.path.join('./train_cnn_log', 'thumos14_resnet50'+time.strftime("_%b_%d_%H_%M", time.localtime()))
+        log_dir = os.path.join('./train_cnn_log', 'thumos14_resnet101'+"_SGD_lr_patience_"+str(arg.lr_patience)+time.strftime("_%b_%d_%H_%M", time.localtime()))
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
@@ -120,8 +122,8 @@ class Spatial_CNN():
 
         
         for self.epoch in range(self.start_epoch, self.nb_epochs):
-            train_prec1, train_loss=self.train_1epoch()
-            prec1, val_loss = self.validate_1epoch()
+            train_prec1, train_loss=self.train_1epoch(checkpoint_dir)
+            prec1, val_loss = self.validate_1epoch(checkpoint_dir)
             writer.add_scalar('train_loss', train_loss, self.epoch)
             writer.add_scalar('train_accuracy', train_prec1, self.epoch)
             writer.add_scalar('test_loss', val_loss, self.epoch)
@@ -132,7 +134,7 @@ class Spatial_CNN():
             # save model
             if is_best:
                 self.best_prec1 = prec1
-                with open('record/spatial/spatial_video_preds.pickle','wb') as f:
+                with open(os.path.join(checkpoint_dir, 'spatial_video_preds.pickle'),'wb') as f:
                     pickle.dump(self.dic_video_level_preds,f)
                 f.close()
             
@@ -141,9 +143,9 @@ class Spatial_CNN():
                 'state_dict': self.model.state_dict(),
                 'best_prec1': self.best_prec1,
                 'optimizer' : self.optimizer.state_dict()
-            },is_best,'record/spatial/checkpoint.pth.tar','record/spatial/model_best.pth.tar')
+            },is_best, os.path.join(checkpoint_dir,'checkpoint.pth.tar'), os.path.join(checkpoint_dir,'model_best.pth.tar'))
 
-    def train_1epoch(self):
+    def train_1epoch(self, checkpoint_dir):
         print('==> Epoch:[{0}/{1}][training stage]'.format(self.epoch, self.nb_epochs))
         batch_time = AverageMeter()
         data_time = AverageMeter()
@@ -157,7 +159,6 @@ class Spatial_CNN():
         progress = tqdm(self.train_loader)
         for i, (data_dict,label) in enumerate(progress):
 
-    
             # measure data loading time
             data_time.update(time.time() - end)
             
@@ -197,11 +198,11 @@ class Spatial_CNN():
                 'Prec@5':round(top5.avg,4),
                 'lr': self.optimizer.param_groups[0]['lr']
                 }
-        record_info(info, 'record/spatial/rgb_train.csv','train')
+        record_info(info, os.path.join(checkpoint_dir, 'rgb_train.csv'),'train')
         
         return top1.avg, losses.avg
 
-    def validate_1epoch(self):
+    def validate_1epoch(self, checkpoint_dir):
         print('==> Epoch:[{0}/{1}][validation stage]'.format(self.epoch, self.nb_epochs))
         batch_time = AverageMeter()
         losses = AverageMeter()
@@ -242,7 +243,7 @@ class Spatial_CNN():
                 'Loss':round(video_loss[0],5),
                 'Prec@1':round(video_top1,3),
                 'Prec@5':round(video_top5,3)}
-        record_info(info, 'record/spatial/rgb_test.csv','test')
+        record_info(info, os.path.join(checkpoint_dir, 'rgb_test.csv'),'test')
         
         return video_top1, video_loss[0]
 
