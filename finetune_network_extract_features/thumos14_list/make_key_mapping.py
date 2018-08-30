@@ -16,10 +16,9 @@ for line in lines:
 	print("key: ", key)
 	value = line.split(' ')[1]
 	print("value: ", value)
-	category_dict[key] = value
-
+	category_dict[value] = key
 print(category_dict)
 
-np.save("category_dict.npy", category_dict)
+np.save("train_category_dict.npy", category_dict)
 
 	
