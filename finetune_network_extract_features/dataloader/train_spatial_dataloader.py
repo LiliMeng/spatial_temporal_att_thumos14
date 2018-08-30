@@ -24,7 +24,7 @@ class spatial_dataset(Dataset):
     def load_image(self, video_name, index):
 
         if self.mode == 'train':
-            path = os.path.join(self.root_dir, "THUMOS14_val_10fps_imgs", video_name)
+            path = video_name
 
         elif self.mode == 'test':
             path = os.path.join(self.root_dir, "THUMOS14_test_10fps_imgs", video_name)
@@ -45,23 +45,19 @@ class spatial_dataset(Dataset):
         
         
         label = list(self.values)[idx]
-        video_name, start_frame, end_frame, nb_frames = list(self.keys)[idx].split(' ')
+        
 
         if self.mode == 'train':
-
-            start_frame = int(start_frame)
-            end_frame = int(end_frame)
+            video_name, nb_frames = list(self.keys)[idx].split(' ')
+          
             nb_frames = int(nb_frames)
 
             clips = []
 
-            #if start_frame ==0:
-            start_frame += 1
-            #end_frame += 1
-            
+            start_frame = 1
             clips.append(random.randint(start_frame, start_frame+int(nb_frames/3)))
             clips.append(random.randint(start_frame + int(nb_frames/3), start_frame +int(nb_frames*2/3)))
-            clips.append(random.randint(start_frame + int(nb_frames*2/3),int(end_frame)))
+            clips.append(random.randint(start_frame + int(nb_frames*2/3), nb_frames))
 
             data ={}
             for i in range(len(clips)):
@@ -73,7 +69,7 @@ class spatial_dataset(Dataset):
             
                           
         elif self.mode == 'test':
-            
+            video_name, start_frame, end_frame, nb_frames = list(self.keys)[idx].split(' ')
             index = abs(int(nb_frames))
             data = self.load_image(video_name,index)
             new_videoname = video_name + " " + start_frame + " "+end_frame
@@ -100,37 +96,32 @@ class spatial_dataloader():
     def load_frame_count(self, split):
       
         if split == 'train':
-        	split_list = self.train_list
+            split_list = self.train_list
+            lines = [line.strip() for line in open(split_list).readlines()]
+
+            for i, line in enumerate(lines):
+                videoname = line.split(' ')[0]
+                label = int(line.split(' ')[1])
+                num_imgs = int(line.split(' ')[2]) 
+                video_path = self.data_path + videoname
+                self.train_frame_count[videoname] = num_imgs
+                self.train_video[videoname] = label 
         else:
-        	split_list = self.test_list
-        lines = [line.strip() for line in open(split_list).readlines()]
-        
-        dup_keys_train = []
-        dup_keys_test = []
-        not_exist_frame_video_train = []
-        not_exist_frame_video_test = []
-        for i, line in enumerate(lines):
-            videoname = line.split(' ')[0]
-            label = int(line.split(' ')[1])
-            start_frame= int(float(line.split(' ')[2])*10)
-            end_frame = int(float(line.split(' ')[3])*10)
-           
-            num_imgs = end_frame - start_frame
+            split_list = self.test_list
+            lines = [line.strip() for line in open(split_list).readlines()]
             
-            new_videoname = videoname + " "+str(start_frame) +" "+str(end_frame)
-            
-            if split == 'train':   
-                last_frame_name_train = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
-                if not Path(last_frame_name_train).is_file():
-                    not_exist_frame_video_train.append(new_videoname)
-                    print("no such file exist in train: ", new_videoname)
-                if new_videoname in self.train_video.keys():
-                    dup_keys_train.append(new_videoname)
-                else:
-                    video_path = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname)
-                    self.train_frame_count[new_videoname] = num_imgs
-                    self.train_video[new_videoname] = label
-            elif split == 'test': 
+            dup_keys_test = []
+            not_exist_frame_video_test = []
+            for i, line in enumerate(lines):
+                videoname = line.split(' ')[0]
+                label = int(line.split(' ')[1])
+                start_frame= int(float(line.split(' ')[2])*10)
+                end_frame = int(float(line.split(' ')[3])*10)
+               
+                num_imgs = end_frame - start_frame
+                
+                new_videoname = videoname + " "+str(start_frame) +" "+str(end_frame)
+                        
                 last_frame_name_test = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
                 if not Path(last_frame_name_test).is_file():
                     print("no such file exist in the test: ", new_videoname)
@@ -141,21 +132,12 @@ class spatial_dataloader():
                     video_path = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname)
                     self.test_frame_count[new_videoname] = num_imgs
                     self.test_video[new_videoname] = label
-            else:
-                raise Exception("no such mode exist, only support train and test")
-
-        if split == 'train':
-            for i in range(len(not_exist_frame_video_train)):
-                del self.train_video[not_exist_frame_video_train[i]]
-            for i in range(len(dup_keys_train)):
-                del self.train_video[dup_keys_train[i]]
-        elif split == 'test':
+        
             for i in range(len(not_exist_frame_video_test)):
                 del self.test_video[not_exist_frame_video_test[i]]
             for i in range(len(dup_keys_test)):
                 del self.test_video[dup_keys_test[i]]
-        else:
-            raise Exception("no such split, only train and test mode is provided")
+        
        
 
     def run(self):
@@ -236,7 +218,7 @@ if __name__ == '__main__':
    dataloader = spatial_dataloader( BATCH_SIZE=32,
                                     num_workers=8,
                                     path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
-                                    train_list ='../thumos14_list/new_Thumos_val.txt',
+                                    train_list ='../thumos14_list/new_Thumos_train.txt',
                                     test_list = '../thumos14_list/new_Thumos_test.txt')
    train_loader,val_loader,test_video = dataloader.run()
 

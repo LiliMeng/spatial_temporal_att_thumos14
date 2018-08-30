@@ -16,7 +16,8 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-import dataloader.spatial_dataloader
+#import dataloader.spatial_dataloader
+from dataloader.train_spatial_dataloader import *
 from utils import *
 from network import resnet101_pretrain_UCF101
 from tensorboardX import SummaryWriter
@@ -39,16 +40,16 @@ def main():
     print(arg)
 
     #Prepare DataLoader
-    data_loader = dataloader.spatial_dataloader(
+    data_loader = spatial_dataloader(
                         BATCH_SIZE=arg.batch_size,
                         num_workers=8,
                         path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
-                        train_list ='./thumos14_list/new_Thumos_val.txt',
+                        train_list ='./thumos14_list/new_Thumos_train.txt',
                         test_list = './thumos14_list/new_Thumos_test.txt')
     
     train_loader, test_loader, test_video = data_loader.run()
 
-    checkpoint_dir = os.path.join("./record/spatial", "pretrain_ucf101")
+    checkpoint_dir = os.path.join("./record/spatial", "pretrain_ucf101_on_train_data")
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
 
