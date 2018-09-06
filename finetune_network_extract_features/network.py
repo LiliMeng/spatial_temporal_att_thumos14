@@ -172,7 +172,7 @@ class Finetune_ResNet(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         self.avgpool = nn.AvgPool2d(7)
-        self.fc_finetune = nn.Linear(512 * block.expansion, nb_classes)
+        self.fc_custom = nn.Linear(512 * block.expansion, nb_classes)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -211,7 +211,7 @@ class Finetune_ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        out = self.fc_finetune(x)
+        out = self.fc_custom(x)
         return out
 
 def resnet18(pretrained=False, channel= 20, **kwargs):
@@ -267,8 +267,8 @@ def resnet101_pretrain_UCF101(pretrained=True, channel=3, **kwargs):
     model = Finetune_ResNet(Bottleneck, [3, 4, 23, 3],nb_classes=101, channel=channel, **kwargs)
     model_dict = model.state_dict()
     if pretrained:
-        print("==> loading old checkpoint '{}'".format("./record/spatial/resnet101/model_best.pth.tar"))
-        old_checkpoint = torch.load("./record/spatial/resnet101/model_best.pth.tar")
+        print("==> loading old checkpoint '{}'".format("./record/spatial/resnet101_pretrain_ucf101/model_best.pth.tar"))
+        old_checkpoint = torch.load("./record/spatial/resnet101_pretrain_ucf101/model_best.pth.tar")
         org_model.load_state_dict(old_checkpoint['state_dict'])
         pretrain_dict = org_model.state_dict()
         pretrain_dict = {k: v for k, v in pretrain_dict.items() if k in model_dict}

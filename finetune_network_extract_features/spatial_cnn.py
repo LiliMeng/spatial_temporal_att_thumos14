@@ -28,11 +28,11 @@ parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet5
 parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs')
 parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
-parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='evaluate model on validation set')
+parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('--resume', default='./record/spatial/resnet101_pretrain_ucf101/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
 parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes in the dataset')
-parser.add_argument('--lr_patience', default=1, type=int, metavar='N', help='learning rate patience')
+parser.add_argument('--lr_patience', default=15, type=int, metavar='N', help='learning rate patience')
 
 def main():
     global arg
@@ -84,8 +84,8 @@ class Spatial_CNN():
     def build_model(self):
         print ('==> Build model and setup loss and optimizer')
         #build model
-        #self.model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
-        self.model = resnet101(pretrained=True, channel=3).cuda()
+        self.model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
+        #self.model = resnet101(pretrained=True, channel=3).cuda()
         # If only finetune the last fully connected layer
         #for param in self.model.parameters():
         #    param.requires_grad = False
