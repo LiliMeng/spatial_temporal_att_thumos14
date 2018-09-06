@@ -19,8 +19,8 @@ for line in lines:
 	videoname = line.split(' ')[0]
 	label = line.split(' ')[1]
 	
-	videoname = os.path.join("/media/dataDisk/THUMOS14/THUMOS_14_training/UCF101", videoname)
-	num_files = str(len(os.listdir(videoname)))
+	video_dir= os.path.join("/media/dataDisk/THUMOS14/THUMOS_14_training/UCF101", videoname)
+	num_files = str(len(os.listdir(video_dir)))
 
 	new_file_with_img_num.write(videoname+" "+label+" "+num_files+"\n")
 	
