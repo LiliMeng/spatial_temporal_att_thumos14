@@ -16,8 +16,8 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-#import dataloader.spatial_dataloader
-from dataloader.train_spatial_dataloader import *
+from dataloader.spatial_dataloader import *
+#from dataloader.train_spatial_dataloader import *
 from utils import *
 from network import resnet101_pretrain_UCF101, resnet101
 from tensorboardX import SummaryWriter
@@ -28,11 +28,11 @@ parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet5
 parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs')
 parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
-parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
+parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='evaluate model on validation set')
 parser.add_argument('--resume', default='./record/spatial/resnet101_pretrain_ucf101/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
 parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes in the dataset')
-parser.add_argument('--lr_patience', default=15, type=int, metavar='N', help='learning rate patience')
+parser.add_argument('--lr_patience', default=1, type=int, metavar='N', help='learning rate patience')
 
 def main():
     global arg
@@ -44,7 +44,7 @@ def main():
                         BATCH_SIZE=arg.batch_size,
                         num_workers=8,
                         path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
-                        train_list ='./thumos14_list/temporal_Thumos_20classes_train.txt',
+                        train_list ='./thumos14_list/new_Thumos_val.txt',
                         test_list = './thumos14_list/new_Thumos_test.txt')
     
     train_loader, test_loader, test_video = data_loader.run()
@@ -84,19 +84,19 @@ class Spatial_CNN():
     def build_model(self):
         print ('==> Build model and setup loss and optimizer')
         #build model
-        self.model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
-        #self.model = resnet101(pretrained=True, channel=3).cuda()
+        #self.model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
+        self.model = resnet101(pretrained=True, channel=3).cuda()
         # If only finetune the last fully connected layer
         #for param in self.model.parameters():
         #    param.requires_grad = False
         # Replace the last fully-connected layer
         # Parameters of newly constructed modules have requires_grad=True by default
         # If only finetune the last fully connected layer
-        #self.model.fc_finetune = nn.Linear(2048, 101).cuda()
+        #self.model.fc_custom = nn.Linear(2048, 101).cuda()
         #Loss function and optimizer
         self.criterion = nn.CrossEntropyLoss().cuda()
         # If only finetune the last fully connected layer
-        #self.optimizer = torch.optim.SGD(self.model.fc_finetune.parameters(), self.lr, momentum=0.9)
+        #self.optimizer = torch.optim.SGD(self.model.fc_custom.parameters(), self.lr, momentum=0.9)
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, momentum=0.9)
         #self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=arg.lr_patience, verbose=True)
