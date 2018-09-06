@@ -19,7 +19,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 #import dataloader.spatial_dataloader
 from dataloader.train_spatial_dataloader import *
 from utils import *
-from network import resnet101_pretrain_UCF101
+from network import resnet101_pretrain_UCF101, resnet101
 from tensorboardX import SummaryWriter
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -32,7 +32,7 @@ parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='e
 parser.add_argument('--resume', default='', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
 parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes in the dataset')
-parser.add_argument('--lr_patience', default=5, type=int, metavar='N', help='learning rate patience')
+parser.add_argument('--lr_patience', default=1, type=int, metavar='N', help='learning rate patience')
 
 def main():
     global arg
@@ -49,7 +49,7 @@ def main():
     
     train_loader, test_loader, test_video = data_loader.run()
 
-    checkpoint_dir = os.path.join("./record/spatial", "pretrain_ucf101_on_train_data")
+    checkpoint_dir = os.path.join("./record/spatial", "pretrain_imageNet_finetune_last_layer")
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
 
@@ -85,10 +85,15 @@ class Spatial_CNN():
         print ('==> Build model and setup loss and optimizer')
         #build model
         self.model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
-
+        #self.model = resnet101(pretrained=True, channel=3).cuda()
+        for param in self.model.parameters():
+            param.requires_grad = False
+        # Replace the last fully-connected layer
+        # Parameters of newly constructed modules have requires_grad=True by default
+        self.model.fc_finetune = nn.Linear(2048, 101).cuda()
         #Loss function and optimizer
         self.criterion = nn.CrossEntropyLoss().cuda()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, momentum=0.9)
+        self.optimizer = torch.optim.SGD(self.model.fc_finetune.parameters(), self.lr, momentum=0.9)
         #self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.scheduler = ReduceLROnPlateau(self.optimizer, 'min', patience=arg.lr_patience, verbose=True)
     
@@ -115,7 +120,7 @@ class Spatial_CNN():
         #self.resume_and_evaluate(checkpoint_dir)
         cudnn.benchmark = True
         
-        log_dir = os.path.join('./train_cnn_log', 'thumos14_resnet101'+"_SGD_lr_patience_"+str(arg.lr_patience)+time.strftime("_%b_%d_%H_%M", time.localtime()))
+        log_dir = os.path.join('./train_cnn_log', 'thumos14_resnet101_pretrainUCF101'+"_SGD_lr_patience_"+str(arg.lr_patience)+time.strftime("_%b_%d_%H_%M", time.localtime()))
 
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
