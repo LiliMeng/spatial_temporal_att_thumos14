@@ -24,7 +24,7 @@ class spatial_dataset(Dataset):
     def load_image(self, video_name, index):
 
         if self.mode == 'train':
-            path = video_name
+            path = os.path.join('/media/dataDisk/THUMOS14/THUMOS_14_training/UCF101', video_name)
 
         elif self.mode == 'test':
             path = os.path.join(self.root_dir, "THUMOS14_test_10fps_imgs", video_name)
