@@ -5,7 +5,7 @@ Date: Sep 6th, 2018
 '''
 import numpy as np
 import scipy.io as sio
-
+import os
 
 def parse_all_101_val_data():
 	val_meta_file='validation_set.mat'
@@ -45,4 +45,24 @@ def parse_20_temporal_val_data():
 		if per_video_label in temp_20_classes:
 			thumos14_20_val_list.write(per_video_name+' '+str(per_video_label)+'\n')
 
-parse_20_temporal_val_data()
+def count_num_frames():
+
+	video_dir_list = "thumos14_20_val_list.txt"
+
+	lines = [line.strip() for line in open(video_dir_list).readlines()]
+
+	new_test_list = "new_thumos14_20_val_list.txt"
+	new_file_with_img_num = open(new_test_list, "a")
+
+	for line in lines:
+		videoname = line.split(' ')[0]
+		label = line.split(' ')[1]
+		
+		video_dir= os.path.join("/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/THUMOS14_val_10fps_imgs", videoname)
+		num_files = str(len(os.listdir(video_dir)))
+
+		new_file_with_img_num.write(videoname+" "+label+" "+num_files+"\n")
+		
+		print("number_files: ", num_files)
+	
+count_num_frames()
