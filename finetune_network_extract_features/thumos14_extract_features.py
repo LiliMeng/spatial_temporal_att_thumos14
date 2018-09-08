@@ -236,9 +236,9 @@ def main():
 		print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
 			toal_num_video,top1.avg, top5.avg))
 
-		np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
-		np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
-		np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
+		# np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
+		# np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
+		# np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)
