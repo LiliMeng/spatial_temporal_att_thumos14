@@ -59,9 +59,11 @@ class spatial_dataset(Dataset):
             start_frame += 1
             #end_frame += 1
             
-            clips.append(random.randint(start_frame, start_frame+int(nb_frames/3)))
-            clips.append(random.randint(start_frame + int(nb_frames/3), start_frame +int(nb_frames*2/3)))
-            clips.append(random.randint(start_frame + int(nb_frames*2/3),int(end_frame)))
+            clips.append(random.randint(start_frame, start_frame+int(nb_frames/5)))
+            clips.append(random.randint(start_frame + int(nb_frames/5), start_frame +int(nb_frames*2/5)))
+            clips.append(random.randint(start_frame + int(nb_frames*2/5), start_frame +int(nb_frames*3/5)))
+            clips.append(random.randint(start_frame + int(nb_frames*3/5), start_frame +int(nb_frames*4/5)))
+            clips.append(random.randint(start_frame + int(nb_frames*4/5),int(end_frame)))
 
             data ={}
             for i in range(len(clips)):
@@ -162,7 +164,7 @@ class spatial_dataloader():
         self.load_frame_count('train')
         self.load_frame_count('test')
         self.get_training_dic()
-        self.val_sample(num_frame_per_video=3)
+        self.val_sample(num_frame_per_video=6)
         train_loader = self.train()
         val_loader = self.validate()
 

@@ -26,7 +26,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet50')
 parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs')
-parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
+parser.add_argument('--batch-size', default=8, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='evaluate model on validation set')
 parser.add_argument('--resume', default='./record/spatial/resnet101_ucf/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
