@@ -29,7 +29,7 @@ parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number
 parser.add_argument('--batch-size', default=16, type=int, metavar='N', help='mini-batch size (default: 25)')
 parser.add_argument('--lr', default=5e-4, type=float, metavar='LR', help='initial learning rate')
 parser.add_argument('--evaluate', dest='evaluate', action='store_false', help='evaluate model on validation set')
-parser.add_argument('--resume', default='./record/spatial/resnet101_pretrain_ucf101/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
+parser.add_argument('--resume', default='./record/spatial/resnet101_ucf/model_best.pth.tar', type=str, metavar='PATH', help='path to latest checkpoint (default: none)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N', help='manual epoch number (useful on restarts)')
 parser.add_argument('--num_classes', default=101, type=int, metavar='N', help='number of classes in the dataset')
 parser.add_argument('--lr_patience', default=1, type=int, metavar='N', help='learning rate patience')
@@ -43,13 +43,13 @@ def main():
     data_loader = spatial_dataloader(
                         BATCH_SIZE=arg.batch_size,
                         num_workers=8,
-                        path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
-                        train_list ='./thumos14_list/new_Thumos_val.txt',
-                        test_list = './thumos14_list/new_Thumos_test.txt')
+                        path='/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/',
+                        train_list ='./thumos14_list/new_thumos_14_20_one_label_temporal_val.txt',
+                        test_list = './thumos14_list/new_thumos_14_20_one_label_temporal_test.txt')
     
     train_loader, test_loader, test_video = data_loader.run()
 
-    checkpoint_dir = os.path.join("./record/spatial", "pretrain_imageNet_finetune_last_layer")
+    checkpoint_dir = os.path.join("./record/spatial", "pretrain_ucf101")
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
 
@@ -107,9 +107,9 @@ class Spatial_CNN():
                 print("==> loading checkpoint '{}'".format(self.resume))
                 checkpoint = torch.load(self.resume)
                 self.start_epoch = checkpoint['epoch']
-                self.best_prec1 = checkpoint['best_prec1']
+                self.best_prec1 = 0#checkpoint['best_prec1']
                 self.model.load_state_dict(checkpoint['state_dict'])
-                self.optimizer.load_state_dict(checkpoint['optimizer'])
+                #self.optimizer.load_state_dict(checkpoint['optimizer'])
                 print("==> loaded checkpoint '{}' (epoch {}) (best_prec1 {})"
                   .format(self.resume, checkpoint['epoch'], self.best_prec1))
             else:
@@ -148,12 +148,12 @@ class Spatial_CNN():
                     pickle.dump(self.dic_video_level_preds,f)
                 f.close()
             
-            save_checkpoint({
-                'epoch': self.epoch,
-                'state_dict': self.model.state_dict(),
-                'best_prec1': self.best_prec1,
-                'optimizer' : self.optimizer.state_dict()
-            },is_best, os.path.join(checkpoint_dir,'checkpoint.pth.tar'), os.path.join(checkpoint_dir,'model_best.pth.tar'))
+                save_checkpoint({
+                    'epoch': self.epoch,
+                    'state_dict': self.model.state_dict(),
+                    'best_prec1': self.best_prec1,
+                    'optimizer' : self.optimizer.state_dict()
+                },is_best, os.path.join(checkpoint_dir,'checkpoint.pth.tar'), os.path.join(checkpoint_dir,'model_best.pth.tar'))
 
     def train_1epoch(self, checkpoint_dir):
         print('==> Epoch:[{0}/{1}][training stage]'.format(self.epoch, self.nb_epochs))

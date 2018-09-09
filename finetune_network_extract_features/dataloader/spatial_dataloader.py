@@ -24,10 +24,10 @@ class spatial_dataset(Dataset):
     def load_image(self, video_name, index):
 
         if self.mode == 'train':
-            path = os.path.join(self.root_dir, "THUMOS14_val_10fps_imgs", video_name)
+            path = os.path.join(self.root_dir, "val/frames_10fps", video_name)
 
         elif self.mode == 'test':
-            path = os.path.join(self.root_dir, "THUMOS14_test_10fps_imgs", video_name)
+            path = os.path.join(self.root_dir, "test/frames_10fps", video_name)
             
         else:
             raise Exception("No such mode")
@@ -120,25 +120,25 @@ class spatial_dataloader():
             new_videoname = videoname + " "+str(start_frame) +" "+str(end_frame)
             
             if split == 'train':   
-                last_frame_name_train = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
+                last_frame_name_train = os.path.join(self.data_path, "val/frames_10fps", videoname, str('%05d'%(end_frame)) + '.jpg')
                 if not Path(last_frame_name_train).is_file():
                     not_exist_frame_video_train.append(new_videoname)
                     print("no such file exist in train: ", new_videoname)
                 if new_videoname in self.train_video.keys():
                     dup_keys_train.append(new_videoname)
                 else:
-                    video_path = os.path.join(self.data_path, "THUMOS14_val_10fps_imgs", videoname)
+                    video_path = os.path.join(self.data_path, "val/frames_10fps", videoname)
                     self.train_frame_count[new_videoname] = num_imgs
                     self.train_video[new_videoname] = label
             elif split == 'test': 
-                last_frame_name_test = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname, str('%05d'%(end_frame)) + '.jpg')
+                last_frame_name_test = os.path.join(self.data_path, "test/frames_10fps", videoname, str('%05d'%(end_frame)) + '.jpg')
                 if not Path(last_frame_name_test).is_file():
                     print("no such file exist in the test: ", new_videoname)
                     not_exist_frame_video_test.append(new_videoname)
                 if new_videoname in self.test_video.keys():
                     dup_keys_test.append(new_videoname)
                 else:
-                    video_path = os.path.join(self.data_path, "THUMOS14_test_10fps_imgs", videoname)
+                    video_path = os.path.join(self.data_path, "test/frames_10fps", videoname)
                     self.test_frame_count[new_videoname] = num_imgs
                     self.test_video[new_videoname] = label
             else:
@@ -233,12 +233,13 @@ class spatial_dataloader():
 
 if __name__ == '__main__':
     
-   dataloader = spatial_dataloader( BATCH_SIZE=32,
-                                    num_workers=8,
-                                    path='/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/',
-                                    train_list ='../thumos14_list/new_Thumos_val.txt',
-                                    test_list = '../thumos14_list/new_Thumos_test.txt')
-   train_loader,val_loader,test_video = dataloader.run()
+   data_loader = spatial_dataloader(
+                        BATCH_SIZE=16,
+                        num_workers=8,
+                        path='/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/',
+                        train_list ='../thumos14_list/new_thumos_14_20_one_label_temporal_val.txt',
+                        test_list = '../thumos14_list/new_thumos_14_20_one_label_temporal_test.txt')
+   train_loader,val_loader,test_video = data_loader.run()
 
 
    
