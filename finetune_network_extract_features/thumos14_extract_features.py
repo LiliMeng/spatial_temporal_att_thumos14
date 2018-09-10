@@ -86,6 +86,11 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
             print("less_frame_count: ", less_frame_count)
             final_start_frame = int(start_frame - int(0.5*(50-total_num_imgs_per_video)))
             final_end_frame = int(end_frame+1 + int(0.5*(50-total_num_imgs_per_video)))
+            
+            if final_start_frame < 1:
+                final_start_frame =1
+             #   final_end_frame = int(end_frame+1+int(0.5*(50-total_num_imgs_per_video))) +(1-tmp)
+
             img_index_list_before = list(range(final_start_frame, start_frame))
             img_index_list_after = list(range(end_frame+1, final_end_frame))
             final_img_index_list = img_index_list_before + img_index_list + img_index_list_after
@@ -93,6 +98,12 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
         else:
             final_start_frame = start_frame-10*img_interval
             final_end_frame = end_frame + 10*img_interval
+
+            tmp = final_start_frame
+            if final_start_frame < 1:
+                final_start_frame =1
+                #final_end_frame = end_frame + 10*img_interval +(1-tmp)
+
             img_index_list_before = list(range(final_start_frame, start_frame, img_interval))
             img_index_list_after = list(range(end_frame+1, final_end_frame+1, img_interval))
             final_img_index_list = img_index_list_before + img_index_list + img_index_list_after
@@ -100,6 +111,9 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
         if len(final_img_index_list)< 50:
             appending_after_list = list(range(final_end_frame+1, final_end_frame+1+50-len(final_img_index_list)))
             final_img_index_list += appending_after_list
+        else:
+            final_img_index_list = final_img_index_list[0:50]
+        print("len(final_img_index_list): ", len(final_img_index_list))
         assert(len(final_img_index_list)==50)
         #new_file_with_start_end_frame.write(video_name+' '+str(label)+' '+str(final_start_frame)+' '+str(final_end_frame)+'\n')
         annot_img_index_list.append(img_index_list)
@@ -109,18 +123,24 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
         imgs_per_video_list = []
         imgs_names_per_video_list = []
         label_per_video_list = []
+        exist_frame_count = 0
         for i in range(0, len(final_img_index_list)):
 
-        	img_name = os.path.join(video_path,  str('%05d'%(final_img_index_list[i])) + '.jpg')
-        	
-        	img = Image.open(img_name).convert('RGB')
+            img_name = os.path.join(video_path,  str('%05d'%(final_img_index_list[i])) + '.jpg')
 
-        	try:
-        		imgs_per_video_list.append(img)
-        		imgs_names_per_video_list.append(img_name) 
-        	except:
-        		print(os.path.join(path, str('%05d'%(index)) + '.jpg'))
-        		img.close()
+            if os.path.isfile(img_name):
+                exist_frame_count +=1
+            else:
+                img_name = os.path.join(video_path, str('%05d'%(final_img_index_list[exist_frame_count-1])) + '.jpg')
+
+            img = Image.open(img_name).convert('RGB')
+
+            try:
+                imgs_per_video_list.append(img)
+                imgs_names_per_video_list.append(img_name) 
+            except:
+                print(os.path.join(path, str('%05d'%(index)) + '.jpg'))
+                img.close()
 
         frames_for_all_video_list.append(imgs_per_video_list)
         labels_for_all_video_list.append(label)
