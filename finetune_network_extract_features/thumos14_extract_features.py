@@ -25,13 +25,13 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import dataloader.spatial_dataloader
 from utils import *
-from network import resnet101_pretrain_UCF101
+from network import *
 import cv2
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet101')
-parser.add_argument('--num_frames', default=6, type=int, metavar='N', help='number of classes in the dataset')
+parser.add_argument('--num_frames', default=30, type=int, metavar='N', help='number of classes in the dataset')
 
 
 class FeatureExtractor(nn.Module):
@@ -45,7 +45,7 @@ class FeatureExtractor(nn.Module):
         return x
 
 
-def load_frames(img_list, video_root_path, num_frames=15):
+def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
 
     lines = [line.strip() for line in open(img_list).readlines()]
 
@@ -54,47 +54,65 @@ def load_frames(img_list, video_root_path, num_frames=15):
     frames_names_for_all_video_list = []
 
     less_frame_count = 0
+    annot_img_index_list = []
+    entire_img_index_list = []
+
     for line in lines:
 
         video_name = line.split(' ')[0]
         label = int(line.split(' ')[1])
-        start_frame = float(line.split(' ')[2])
-        end_frame = float(line.split(' ')[3])
-        total_num_imgs_per_video = int((end_frame-start_frame)*10)
+        start_frame = int(float(line.split(' ')[2])*10)
+        end_frame = int(float(line.split(' ')[3])*10)
+        total_num_imgs_per_video = end_frame-start_frame
 
         video_path = os.path.join(video_root_path, video_name)
 
         
-        if total_num_imgs_per_video < num_frames:
-        	less_frame_count +=1 
-        	print("total_num_imgs_per_video: ", total_num_imgs_per_video)
-        	print("less_frame_count: ", less_frame_count)
-            #raise Exception("the total number of frames in this video is less than num_frames"+video_path)
-        
-
-        img_interval = int(total_num_imgs_per_video/num_frames)
+        img_interval = int((total_num_imgs_per_video/num_frames))
+        #print("img_interval: ", img_interval)
+        #raise Exception("hahha")
 
         if img_interval != 0:
-        	img_index_list = list(range(1, total_num_imgs_per_video+1, img_interval))
+            img_index_list = list(range(start_frame, end_frame+1, img_interval))
         else:
-        	img_index_list = list(range(1, total_num_imgs_per_video+1))
-        
-        # if img_index_list is too large, remove some frames, else append the last frame
-        if len(img_index_list) > num_frames:
+            img_index_list = list(range(start_frame, end_frame+1))
+
+        if total_num_imgs_per_video > num_frames:
             img_index_list = img_index_list[0:num_frames]
+            
+        if total_num_imgs_per_video <= num_frames:
+            less_frame_count +=1 
+            print("total_num_imgs_per_video: ", total_num_imgs_per_video)
+            print("less_frame_count: ", less_frame_count)
+            final_start_frame = int(start_frame - int(0.5*(50-total_num_imgs_per_video)))
+            final_end_frame = int(end_frame+1 + int(0.5*(50-total_num_imgs_per_video)))
+            img_index_list_before = list(range(final_start_frame, start_frame))
+            img_index_list_after = list(range(end_frame+1, final_end_frame))
+            final_img_index_list = img_index_list_before + img_index_list + img_index_list_after
+            
+        else:
+            final_start_frame = start_frame-10*img_interval
+            final_end_frame = end_frame + 10*img_interval
+            img_index_list_before = list(range(final_start_frame, start_frame, img_interval))
+            img_index_list_after = list(range(end_frame+1, final_end_frame+1, img_interval))
+            final_img_index_list = img_index_list_before + img_index_list + img_index_list_after
+
+        if len(final_img_index_list)< 50:
+            appending_after_list = list(range(final_end_frame+1, final_end_frame+1+50-len(final_img_index_list)))
+            final_img_index_list += appending_after_list
+        assert(len(final_img_index_list)==50)
+        #new_file_with_start_end_frame.write(video_name+' '+str(label)+' '+str(final_start_frame)+' '+str(final_end_frame)+'\n')
+        annot_img_index_list.append(img_index_list)
+        entire_img_index_list.append(final_img_index_list)
         
-        #assert(len(img_index_list)==num_frames)
 
         imgs_per_video_list = []
         imgs_names_per_video_list = []
         label_per_video_list = []
-        for i in range(0, num_frames):
+        for i in range(0, len(final_img_index_list)):
 
-        	if len(img_index_list) >= num_frames:
-        		img_name = os.path.join(video_path,  str('%05d'%(img_index_list[i])) + '.jpg')
-        	else:
-        		img_name = os.path.join(video_path,  str('%05d'%(img_index_list[-1])) + '.jpg')
-
+        	img_name = os.path.join(video_path,  str('%05d'%(final_img_index_list[i])) + '.jpg')
+        	
         	img = Image.open(img_name).convert('RGB')
 
         	try:
@@ -108,7 +126,7 @@ def load_frames(img_list, video_root_path, num_frames=15):
         labels_for_all_video_list.append(label)
         frames_names_for_all_video_list.append(imgs_names_per_video_list)
 
-    return frames_for_all_video_list, frames_names_for_all_video_list, labels_for_all_video_list
+    return annot_img_index_list, entire_img_index_list, frames_for_all_video_list, frames_names_for_all_video_list, labels_for_all_video_list
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -152,7 +170,7 @@ def main():
 	# 1. build model
 	print ('==> Build model and setup loss and optimizer')
 	# build model
-	model = resnet101_pretrain_UCF101(pretrained=True, channel=3).cuda()
+	model = resnet101(pretrained=True, channel=3).cuda()
 
 	#Loss function and optimizer
 	criterion = nn.CrossEntropyLoss().cuda()
@@ -160,7 +178,7 @@ def main():
 	#self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 	scheduler = ReduceLROnPlateau(optimizer, 'min', patience=1,verbose=True)
 
-	model_resume_path ='./record/spatial/pretrain_ucf101/model_best.pth.tar'
+	model_resume_path ='./record/spatial/valid_test_best/model_best.pth.tar'
 	# 2. load pretrained model
 	if os.path.isfile(model_resume_path):
 		print("==> loading checkpoint '{}'".format(model_resume_path))
@@ -179,9 +197,10 @@ def main():
 				transforms.ToTensor(),
 				transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-	all_frames, all_frame_names, all_labels = load_frames(img_list = "./thumos14_list/new_Thumos_test.txt",
-				video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_10fps_imgs/THUMOS14_test_10fps_imgs",
-				num_frames=arg.num_frames)
+	annot_img_index_list, entire_img_index_list, all_frames, all_frame_names, all_labels = load_frames(new_img_list = "new_file_with_start_end_frame_test.txt",
+                                            img_list = "./thumos14_list/final_thumos_14_20_one_label_temporal_val.txt",
+                                            video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/val/frames_10fps",
+                                            num_frames=30)
 
 	feature_dir = "./saved_features"
 
@@ -236,9 +255,9 @@ def main():
 		print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
 			toal_num_video,top1.avg, top5.avg))
 
-		# np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
-		# np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
-		# np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
+		np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
+		np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
+		np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)
