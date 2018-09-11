@@ -240,7 +240,7 @@ def main():
 
 	# load train data
 
-	train_data_dir = '../spa_features/val'
+	train_data_dir = '/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/val/'
 	train_csv_file = './feature_list/feature_val_list.csv'
 
 	train_data_loader = get_loader(data_dir=train_data_dir, 
@@ -249,7 +249,7 @@ def main():
 							mode ='train',
 							dataset='thumos14')
 	# load test data
-	test_data_dir = '../spa_features/test'
+	test_data_dir = '/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/test/'
 	test_csv_file = './feature_list/feature_test_list.csv'
 	test_data_loader = get_loader(data_dir=test_data_dir, 
 							csv_file = test_csv_file, 
@@ -279,8 +279,8 @@ def main():
 		os.makedirs(saved_weights_folder)
 	
 
-	num_step_per_epoch_train = 3006/FLAGS.train_batch_size
-	num_step_per_epoch_test = 3357/FLAGS.test_batch_size
+	num_step_per_epoch_train = 2137/FLAGS.train_batch_size
+	num_step_per_epoch_test = 2326/FLAGS.test_batch_size
 	for epoch_num in range(maxEpoch):
 
 		#model_optimizer = lr_scheduler(optimizer = model_optimizer, epoch_num=epoch_num, init_lr = 1e-5, lr_decay_epochs=25)
@@ -316,7 +316,7 @@ def main():
 			total_train_corrects+= train_corrects
 			
 		train_spa_att_weights_np = torch.cat(train_spa_att_weights_list, dim=0)
-		avg_train_corrects = total_train_corrects *100 /3006
+		avg_train_corrects = total_train_corrects *100 /2137
 		epoch_train_loss = epoch_train_loss/num_step_per_epoch_train
 		epoch_train_reg_loss = epoch_train_reg_loss/num_step_per_epoch_train
 		epoch_train_tv_loss = epoch_train_tv_loss/num_step_per_epoch_train
@@ -371,7 +371,7 @@ def main():
 			epoch_test_tv_loss += test_tv_loss
 			epoch_test_contrast_loss += test_contrast_loss
 
-		avg_test_corrects = total_test_corrects*100/3357
+		avg_test_corrects = total_test_corrects*100/2326
 
 		epoch_test_loss = epoch_test_loss/num_step_per_epoch_test
 		epoch_test_reg_loss = epoch_test_reg_loss/num_step_per_epoch_test
@@ -416,7 +416,7 @@ if __name__ == '__main__':
                     	help='test_batch_size: [64]')
     parser.add_argument('--max_epoch', type=int, default=200,
                     	help='max number of training epoch: [60]')
-    parser.add_argument('--num_segments', type=int, default=6,
+    parser.add_argument('--num_segments', type=int, default=50,
                     	help='num of segments per video: [110]')
     parser.add_argument('--use_changed_lr', dest='use_changed_lr',
     					help='not use change learning rate by default', action='store_true')
