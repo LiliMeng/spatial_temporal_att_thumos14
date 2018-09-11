@@ -32,6 +32,7 @@ import time
 from PIL import Image
 from feature_dataloader import *
 from convlstm import *
+from utils import *
 use_cuda = True
 
 class Action_Att_LSTM(nn.Module):
@@ -277,7 +278,10 @@ def main():
 
 	if not os.path.exists(saved_weights_folder):
 		os.makedirs(saved_weights_folder)
-	
+
+	saved_checkpoint_dir = os.path.join('./saved_checkpoints', log_name)
+	if not os.path.exists(saved_checkpoint_dir):
+		os.makedirs(saved_checkpoint_dir)
 
 	num_step_per_epoch_train = 2137/FLAGS.train_batch_size
 	num_step_per_epoch_test = 2326/FLAGS.test_batch_size
@@ -336,6 +340,8 @@ def main():
 		save_train_file = log_name+"_train_acc.txt"
 		with open(save_train_file, "a") as text_file:
 				print(f"{str(final_train_accuracy)}", file=text_file)
+
+		
 
 		avg_test_accuracy = 0
 		lstm_action.eval()
@@ -398,10 +404,16 @@ def main():
 		with open(save_test_file, "a") as text_file1:
 				print(f"{str(final_test_accuracy)}", file=text_file1)
 
+		is_best = False
 		if final_test_accuracy > best_test_accuracy:
 			best_test_accuracy = final_test_accuracy
+			is_best = True
 		print('\033[91m' + "best test accuracy is: " +str(best_test_accuracy)+ '\033[0m') 
 		
+
+
+		save_checkpoint({'epoch': epoch_num,
+			'model': lstm_action.state_dict(),}, is_best=False, save_folder=saved_checkpoint_dir, filename='thumos14_20_checkpoint_{}.pth.tar'.format(epoch_num))
 	# export scalar data to JSON for external processing
 	#writer.export_scalars_to_json("./saved_logs/all_scalars.json")
 	writer.close()
