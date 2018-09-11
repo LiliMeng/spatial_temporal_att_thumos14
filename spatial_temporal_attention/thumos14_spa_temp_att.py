@@ -86,10 +86,7 @@ class Action_Att_LSTM(nn.Module):
 	
 		input_x = input_x.view(-1, 2048, 7, 7)
 		
-		#print(input_x.shape)
-		
 		mask = self.mask_conv(input_x)
-		#print("mask.shape: ", mask.shape)
 		mask = mask.view(-1, FLAGS.num_segments, 1, 7, 7)
 
 		input_x = input_x.view(-1, FLAGS.num_segments, 2048, 7, 7)
@@ -108,27 +105,12 @@ class Action_Att_LSTM(nn.Module):
 		mask_input_x = mask * input_x
 		output, hidden = self.conv_lstm(mask_input_x)
 
-		#print("output[0].shape ", output[0].shape)
-		#print("len(hidden[0]) ", len(hidden[0]))
-		#print("hidden")
-		#print(hidden)
-		#print(len(hidden[0][0]))
-
-		# hidden: 30x512x7x7 
-		# output[0].shape: ([30, 22, 512, 7, 7])
-
 		output = output[0]
 		
 		output = torch.mean(output,dim=4)
 		output = torch.mean(output,dim=3)
 		
-		#print("output.shape: ", output.shape)
-		#[30, 22, 512]
 		att_weight = self.fc_attention(output).view(-1, FLAGS.num_segments)
-
-		#print("att_weight.shape")
-		#print(att_weight.shape)
-		
 
 		att_weight = F.softmax(att_weight, dim =1)
 		
