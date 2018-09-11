@@ -383,7 +383,7 @@ def main():
 		avg_test_accuracy = 0
 		lstm_action.eval()
 		test_name_list =[]
-		test_spa_att_weights_list = []
+		test_tmp_att_weights_list = []
 		total_test_corrects = 0
 		epoch_test_loss = 0
 		epoch_test_reg_loss =0
@@ -398,10 +398,10 @@ def main():
 			test_batch_label = Variable(test_batch_label[:,0], volatile=True).cuda().long()
 			
 
-			test_mask, test_logits, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_spa_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
+			test_mask, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
 
 			test_name_list.append(test_batch_name)
-			test_spa_att_weights_list.append(test_mask)
+			test_tmp_att_weights_list.append(test_temp_att_weights)
 			
 			print("i: {} batch_test_accuracy: {} ".format(i, test_accuracy))
 			total_test_corrects += test_corrects 
@@ -420,10 +420,10 @@ def main():
 		epoch_test_reg_loss = epoch_test_reg_loss/num_step_per_epoch_test
 		epoch_test_tv_loss = epoch_test_tv_loss/num_step_per_epoch_test
 		epoch_test_contrast_loss = epoch_test_contrast_loss/num_step_per_epoch_test
-		test_spa_att_weights_np = torch.cat(test_spa_att_weights_list, dim=0)
+		test_tmp_att_weights_np = torch.cat(test_tmp_att_weights_list, dim=0)
 		#print("test_spa_att_weights_np.shape ", test_spa_att_weights_np.shape)
 		np.save(saved_weights_folder+"/test_name.npy", np.asarray(test_name_list))
-		np.save(saved_weights_folder+"/test_att_weights.npy", test_spa_att_weights_np.cpu().data.numpy())
+		np.save(saved_weights_folder+"/test_att_weights.npy", test_tmp_att_weights_np.cpu().data.numpy())
 	
 		final_test_accuracy = avg_test_accuracy/num_step_per_epoch_test
 		print("epoch: "+str(epoch_num)+ " test accuracy: " + str(final_test_accuracy))
