@@ -265,6 +265,9 @@ def main():
 	if not os.path.exists(saved_checkpoint_dir):
 		os.makedirs(saved_checkpoint_dir)
 
+	num_step_per_epoch_train = 2137/FLAGS.train_batch_size
+	num_step_per_epoch_test = 2326/FLAGS.test_batch_size
+	
 	resumed_checkpoint_dir = "./saved_checkpoints/Contrast_0.0001_TV_reg1e-05_mask_LRPatience5_Adam0.0001_decay0.0001_dropout_0.2_Temporal_ConvLSTM_hidden512_regFactor_1_Sep_11_12_33/thumos14_20_checkpoint_1.pth.tar"
 	
 	use_pretrained_model = True
@@ -321,8 +324,7 @@ def main():
 
 		print("final_test_accuracy: ", final_test_accuracy)
 	
-	num_step_per_epoch_train = 2137/FLAGS.train_batch_size
-	num_step_per_epoch_test = 2326/FLAGS.test_batch_size
+	
 	for epoch_num in range(maxEpoch):
 
 		lstm_action.train()
