@@ -10,15 +10,15 @@ import numpy as np
 import os
 
 
-feature_dir = "../../../spa_features/test/features/"
-txt_file = open("feature_test_list.txt", mode='a')
+feature_dir = "/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/val/"
+txt_file = open("feature_val_list.txt", mode='a')
 
 txt_file.write("Feature"+"\n")
 
 
 for feature_filename in sorted(os.listdir(feature_dir)):
 	
-	if '.npy' in feature_filename:
+	if 'feature' in feature_filename:
 		print("feature_filename: ", feature_filename)
 
 		txt_file.write(feature_filename+"\n")

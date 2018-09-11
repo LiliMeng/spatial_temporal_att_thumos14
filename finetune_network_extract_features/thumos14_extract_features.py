@@ -31,7 +31,7 @@ import cv2
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='THUMOS14 spatial stream on resnet101')
-parser.add_argument('--num_frames', default=30, type=int, metavar='N', help='number of classes in the dataset')
+parser.add_argument('--num_frames', default=50, type=int, metavar='N', help='number of classes in the dataset')
 
 
 class FeatureExtractor(nn.Module):
@@ -63,15 +63,14 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
         label = int(line.split(' ')[1])
         start_frame = int(float(line.split(' ')[2])*10)
         end_frame = int(float(line.split(' ')[3])*10)
+        num_frames_entire_video = int(line.split(' ')[4])
         total_num_imgs_per_video = end_frame-start_frame
 
         video_path = os.path.join(video_root_path, video_name)
 
         
         img_interval = int((total_num_imgs_per_video/num_frames))
-        #print("img_interval: ", img_interval)
-        #raise Exception("hahha")
-
+        
         if img_interval != 0:
             img_index_list = list(range(start_frame, end_frame+1, img_interval))
         else:
@@ -82,8 +81,7 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
             
         if total_num_imgs_per_video <= num_frames:
             less_frame_count +=1 
-            print("total_num_imgs_per_video: ", total_num_imgs_per_video)
-            print("less_frame_count: ", less_frame_count)
+        
             final_start_frame = int(start_frame - int(0.5*(50-total_num_imgs_per_video)))
             final_end_frame = int(end_frame+1 + int(0.5*(50-total_num_imgs_per_video)))
             
@@ -106,24 +104,39 @@ def load_frames(new_img_list, img_list, video_root_path, num_frames=15):
 
             img_index_list_before = list(range(final_start_frame, start_frame, img_interval))
             img_index_list_after = list(range(end_frame+1, final_end_frame+1, img_interval))
+
+          
+            if final_end_frame > num_frames_entire_video:
+
+                final_end_frame = end_frame +10
+
+                if final_end_frame > num_frames_entire_video:
+                    img_index_list_after = list(range(end_frame+1, num_frames_entire_video))
+                else:
+                    img_index_list_after = list(range(end_frame+1, final_end_frame+10))
+
             final_img_index_list = img_index_list_before + img_index_list + img_index_list_after
 
         if len(final_img_index_list)< 50:
             appending_after_list = list(range(final_end_frame+1, final_end_frame+1+50-len(final_img_index_list)))
+            for i in range(len(appending_after_list)):
+                if appending_after_list[i] > num_frames_entire_video:
+                    appending_after_list[i] = num_frames_entire_video
+
             final_img_index_list += appending_after_list
         else:
             final_img_index_list = final_img_index_list[0:50]
-        print("len(final_img_index_list): ", len(final_img_index_list))
-        assert(len(final_img_index_list)==50)
-        #new_file_with_start_end_frame.write(video_name+' '+str(label)+' '+str(final_start_frame)+' '+str(final_end_frame)+'\n')
-        annot_img_index_list.append(img_index_list)
-        entire_img_index_list.append(final_img_index_list)
-        
 
+
+        print("len(final_img_index_list): ", len(final_img_index_list))
+     
+        assert(len(final_img_index_list)==50)
+        
         imgs_per_video_list = []
         imgs_names_per_video_list = []
         label_per_video_list = []
         exist_frame_count = 0
+        print("final_img_index_list: ", final_img_index_list)
         for i in range(0, len(final_img_index_list)):
 
             img_name = os.path.join(video_path,  str('%05d'%(final_img_index_list[i])) + '.jpg')
@@ -218,11 +231,11 @@ def main():
 				transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
 	annot_img_index_list, entire_img_index_list, all_frames, all_frame_names, all_labels = load_frames(new_img_list = "new_file_with_start_end_frame_test.txt",
-                                            img_list = "./thumos14_list/final_thumos_14_20_one_label_temporal_val.txt",
-                                            video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/val/frames_10fps",
+                                            img_list = "./thumos14_list/final_thumos_14_20_one_label_temporal_test_with_img_num.txt",
+                                            video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/test/frames_10fps",
                                             num_frames=30)
 
-	feature_dir = "./saved_features"
+	feature_dir = "./saved_features/test"
 
 	if not os.path.exists(feature_dir):
 		os.makedirs(feature_dir)
@@ -238,6 +251,8 @@ def main():
 	model.eval()
 
 	for i in range(toal_num_video):
+
+		
 
 		input_data = torch.stack([transform(frame) for frame in all_frames[i]])
 
@@ -256,9 +271,7 @@ def main():
 
 		features_np = np.squeeze(features.data.cpu().numpy())
 
-		all_logits_list.append(logits_np)
-
-		all_features_list.append(features_np)
+		
 		print("features_np.shape: ", features_np.shape)
 
 		per_video_logits = np.expand_dims(np.mean(logits_np,axis=0), axis=0)
@@ -273,11 +286,12 @@ def main():
 		top5.update(prec5[0], 1)
 
 		print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
-			toal_num_video,top1.avg, top5.avg))
+            toal_num_video,top1.avg, top5.avg))
 
-		np.save('./spa_features/test/features/features_{}.npy'.format(i), features_np)
-		np.save('./spa_features/test/names/name_{}.npy'.format(i), all_frame_names[i])
-		np.save('./spa_features/test/labels/label_{}.npy'.format(i), per_video_label)
+		if i >= 1500:
+			np.save('./saved_features/test/features_{}.npy'.format(i), features_np)
+			np.save('./saved_features/test/name_{}.npy'.format(i), all_frame_names[i])
+			np.save('./saved_features/test/label_{}.npy'.format(i), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)

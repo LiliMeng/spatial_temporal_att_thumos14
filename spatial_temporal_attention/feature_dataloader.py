@@ -23,17 +23,18 @@ class ThumosDataset(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        feature_file = os.path.join(self.data_dir, 'features', self.dataset['Feature'][idx])
+        feature_file = os.path.join(self.data_dir,  self.dataset['Feature'][idx])
         
-        label_file = os.path.join(self.data_dir, 'labels', self.dataset['Feature'][idx].replace("features", "label"))
-        name_file = os.path.join(self.data_dir, 'names', self.dataset['Feature'][idx].replace("features", "name"))
-        
+        label_file = os.path.join(self.data_dir,  self.dataset['Feature'][idx].replace("features", "label"))
+        name_file = os.path.join(self.data_dir,  self.dataset['Feature'][idx].replace("features", "name"))
+ 
         feature_per_video = np.load(feature_file)
         label_per_video = np.load(label_file)
         name_per_video = np.load(name_file)
-    
+
         sample = {'feature': feature_per_video, 'label': label_per_video}
         
+       
         return sample, list(name_per_video)
 
 
@@ -54,22 +55,23 @@ if __name__ == '__main__':
     
     batch_size = 30
 
-    val_data_dir = '../../spa_features/val'
+    val_data_dir = '/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/val/'
     val_csv_file = './feature_list/feature_val_list.csv'
     val_data_loader = get_loader(val_data_dir, val_csv_file, batch_size=batch_size, mode='train',
                              dataset='thumos14')
    
     for i, (val_sample, val_batch_name) in enumerate(val_data_loader):
+
         val_batch_feature = val_sample['feature']
         val_batch_label = val_sample['label']
         print("val_batch_feature.shape: ", val_batch_feature.shape)
-        print("len(val_batch_name): ", len(val_batch_name))
+       # print("len(val_batch_name): ", len(val_batch_name))
         print("val_batch_label.shape: ", val_batch_label.shape)
         
         print("i: ", i)
         break
        
-    test_data_dir = '../../spa_features/test'
+    test_data_dir = '/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/test/'
     test_csv_file = './feature_list/feature_test_list.csv'
     test_data_loader = get_loader(test_data_dir, test_csv_file, batch_size=batch_size, mode='test',
                              dataset='thumos14')
