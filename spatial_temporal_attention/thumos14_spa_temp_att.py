@@ -313,7 +313,7 @@ def main():
 			test_name_list.append(test_batch_name)
 			test_spa_att_weights_list.append(test_mask)
 			
-			print("batch_test_accuracy: ", test_accuracy)
+			print("i: {} batch_test_accuracy: {} ".format(i, test_accuracy))
 			total_test_corrects += test_corrects 
 
 			avg_test_accuracy+= test_accuracy
@@ -419,7 +419,7 @@ def main():
 			test_name_list.append(test_batch_name)
 			test_spa_att_weights_list.append(test_mask)
 			
-			print("batch_test_accuracy: ", test_accuracy)
+			print("i: {} batch_test_accuracy: {} ".format(i, test_accuracy))
 			total_test_corrects += test_corrects 
 
 			avg_test_accuracy+= test_accuracy
