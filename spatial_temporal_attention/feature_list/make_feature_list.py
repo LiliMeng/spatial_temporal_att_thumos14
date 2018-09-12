@@ -10,8 +10,8 @@ import numpy as np
 import os
 
 
-feature_dir = "/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/val/"
-txt_file = open("feature_val_list.txt", mode='a')
+feature_dir = "/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/test/"
+txt_file = open("feature_test_list.txt", mode='a')
 
 txt_file.write("Feature"+"\n")
 

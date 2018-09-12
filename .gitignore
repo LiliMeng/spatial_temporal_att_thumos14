@@ -6,3 +6,6 @@ finetune_network_extract_features/train_cnn_log/
 dataloader/__pycache__
 spa_features/
 spatial_temporal_attention/Conv_thumos14_tensorboard/
+spatial_temporal_attention/saved_checkpoints/
+spatial_temporal_attention/saved_weights/
+
