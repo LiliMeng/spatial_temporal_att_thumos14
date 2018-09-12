@@ -58,8 +58,8 @@ for i in range(attention_weights.shape[0]):
 				count_in_tmp_annot_num+=1
 
 		print("count_in_tmp_annot_num: ", count_in_tmp_annot_num)	
-
-		IOU = count_in_tmp_annot_num/30
+		print("len(annotated_img_list[i]: ", len(annotated_img_list[i]))
+		IOU = count_in_tmp_annot_num/len(annotated_img_list[i])
 		print("IOU: ", IOU)
 
 		if IOU > IOU_threshold:
