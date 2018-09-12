@@ -201,6 +201,7 @@ def test_step(batch_size,
 
 	test_loss = criterion(test_logits, batch_y)
 
+	test_pred_label = torch.max(test_logits, 1)[1].view(batch_y.size()).data
 	if FLAGS.use_regularizer:
 		test_reg_loss = FLAGS.hp_reg_factor*att_reg 
 		test_loss += test_reg_loss
@@ -209,7 +210,7 @@ def test_step(batch_size,
 
 	test_accuracy = 100.0 * corrects/batch_size
 
-	return mask, test_loss, test_reg_loss, tv_loss, contrast_loss, test_accuracy, att_weight, corrects
+	return mask, test_pred_label, test_loss, test_reg_loss, tv_loss, contrast_loss, test_accuracy, att_weight, corrects
 
 
 def main():
@@ -279,6 +280,8 @@ def main():
 		lstm_action.eval()
 		test_name_list =[]
 		test_tmp_att_weights_list = []
+		test_pred_label_list = []
+		test_gt_label_list = []
 		total_test_corrects = 0
 		epoch_test_loss = 0
 		epoch_test_reg_loss =0
@@ -293,12 +296,13 @@ def main():
 			test_batch_label = Variable(test_batch_label[:,0], volatile=True).cuda().long()
 			
 			
-			test_mask, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
+			test_mask, test_pred_label, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
 
 			test_batch_name = np.swapaxes(np.asarray(test_batch_name),0,1)
 			test_name_list.append(test_batch_name)
 			test_tmp_att_weights_list.append(test_temp_att_weights)
-			
+			test_gt_label_list.append(test_batch_label)
+			test_pred_label_list.append(test_pred_label)
 			print("i: {} batch_test_accuracy: {} ".format(i, test_accuracy))
 			total_test_corrects += test_corrects 
 
@@ -320,7 +324,8 @@ def main():
 		#print("test_spa_att_weights_np.shape ", test_spa_att_weights_np.shape)
 		np.save(saved_weights_folder+"/test_name.npy", np.asarray(test_name_list))
 		np.save(saved_weights_folder+"/test_att_weights.npy", test_tmp_att_weights_np.cpu().data.numpy())
-	
+		np.save(saved_weights_folder+"/test_pred_label.npy", np.asarry(test_pred_label_list))
+		np.save(saved_weights_folder+"/test_gt_label.npy", np.asarray(test_gt_label_list))
 		final_test_accuracy = avg_test_accuracy/num_step_per_epoch_test
 
 		print("final_test_accuracy: ", final_test_accuracy)
@@ -400,7 +405,7 @@ def main():
 			test_batch_label = Variable(test_batch_label[:,0], volatile=True).cuda().long()
 			
 
-			test_mask, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
+			test_mask, test_pred_label, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
 			test_batch_name = np.swapaxes(np.asarray(test_batch_name),0,1)
 			test_name_list.append(test_batch_name)
 			test_tmp_att_weights_list.append(test_temp_att_weights)
