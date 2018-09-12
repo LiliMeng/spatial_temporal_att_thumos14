@@ -295,6 +295,7 @@ def main():
 			
 			test_mask, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
 
+			test_batch_name = np.swapaxes(np.asarray(test_batch_name),0,1)
 			test_name_list.append(test_batch_name)
 			test_tmp_att_weights_list.append(test_temp_att_weights)
 			
@@ -346,6 +347,7 @@ def main():
 			
 			train_mask, train_loss, train_reg_loss, train_tv_loss, train_contrast_loss, train_accuracy, train_spa_att_weights, train_corrects = train(FLAGS.train_batch_size, train_batch_feature, train_batch_label, lstm_action, model_optimizer, criterion)
 			#print("train_spa_att_weights[0:5] ",train_spa_att_weights[0:5])
+			train_batch_name = np.swapaxes(np.asarray(train_batch_name),0,1)
 			train_name_list.append(train_batch_name)
 			train_spa_att_weights_list.append(train_mask)
 			avg_train_accuracy+=train_accuracy
@@ -399,7 +401,7 @@ def main():
 			
 
 			test_mask, test_loss, test_reg_loss, test_tv_loss, test_contrast_loss, test_accuracy, test_temp_att_weights, test_corrects = test_step(FLAGS.test_batch_size, test_batch_feature, test_batch_label, lstm_action, criterion)
-
+			test_batch_name = np.swapaxes(np.asarray(test_batch_name),0,1)
 			test_name_list.append(test_batch_name)
 			test_tmp_att_weights_list.append(test_temp_att_weights)
 			
