@@ -21,13 +21,13 @@ annotated_img_list = np.load("/media/dataDisk/Video/spatial_temporal_att_thumos1
 
 IOU_05_count = 0
 for i in range(attention_weights.shape[0]):
-
+	print("video_name: ", test_img_names[i][0].split('/')[-2])
 	good_img_index = []
 	all_img_index = []
 	for j in range(attention_weights.shape[1]):
 		img_index = int(test_img_names[i][j].split('/')[-1].split('.jpg')[0])
 		all_img_index.append(img_index)
-		if attention_weights[i][j] > 0.01:
+		if attention_weights[i][j] > 0.02:
 			good_img_index.append(img_index)
 
 	print("len(good_img_index): ", len(good_img_index))
@@ -45,5 +45,7 @@ for i in range(attention_weights.shape[0]):
 	if IOU > 0.1:
 		IOU_05_count+=1
 
+	if i >2:
+		break
 print("the number of IOU is larger than 0.5 is: ", IOU_05_count)
 print("the percentage of IOU is larger than 0.5 is: ", IOU_05_count/attention_weights.shape[0])
