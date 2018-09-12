@@ -235,7 +235,7 @@ def main():
                                             video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/val/frames_10fps",
                                             num_frames=30)
 
-	feature_dir = "./saved_features/test"
+	feature_dir = "./saved_features/val"
 
 	if not os.path.exists(feature_dir):
 		os.makedirs(feature_dir)
@@ -287,9 +287,9 @@ def main():
             toal_num_video,top1.avg, top5.avg))
 
 		
-		np.save('./saved_features/test/features_{}.npy'.format('%05d'%i), features_np)
-		np.save('./saved_features/test/name_{}.npy'.format('%05d'%i), all_frame_names[i])
-		np.save('./saved_features/test/label_{}.npy'.format('%05d'%i), per_video_label)
+		np.save(os.path.join(feature_dir, 'features_{}.npy'.format('%05d'%i)), features_np)
+		np.save(os.path.join(feature_dir, 'name_{}.npy'.format('%05d'%i)), all_frame_names[i])
+		np.save(os.path.join(feature_dir, 'label_{}.npy'.format('%05d'%i)), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)
