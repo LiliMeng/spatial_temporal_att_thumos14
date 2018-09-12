@@ -292,7 +292,7 @@ def main():
 			test_batch_feature = test_sample['feature'].transpose(1,2)
 			test_batch_label = test_sample['label']
 			
-			test_gt_label_list.append(test_batch_label)
+			test_gt_label_list.append(test_batch_label[:, 0].numpy())
 			test_batch_feature = Variable(test_batch_feature, volatile=True).cuda().float()
 			test_batch_label = Variable(test_batch_label[:,0], volatile=True).cuda().long()
 			
