@@ -230,12 +230,12 @@ def main():
 				transforms.ToTensor(),
 				transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-	annot_img_index_list, entire_img_index_list, all_frames, all_frame_names, all_labels = load_frames(new_img_list = "new_file_with_start_end_frame_val.txt",
-                                            img_list = "./thumos14_list/final_thumos_14_20_one_label_temporal_val_with_img_num.txt",
-                                            video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/val/frames_10fps",
+	annot_img_index_list, entire_img_index_list, all_frames, all_frame_names, all_labels = load_frames(new_img_list = "new_file_with_start_end_frame_test.txt",
+                                            img_list = "./thumos14_list/final_thumos_14_20_one_label_temporal_test_with_img_num.txt",
+                                            video_root_path = "/media/dataDisk/THUMOS14/THUMOS14_video/thumos14_preprocess/test/frames_10fps",
                                             num_frames=30)
 
-	feature_dir = "./saved_features/val"
+	feature_dir = "./saved_features/test"
 
 	if not os.path.exists(feature_dir):
 		os.makedirs(feature_dir)
