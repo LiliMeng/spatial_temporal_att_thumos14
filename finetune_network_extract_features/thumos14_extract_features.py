@@ -252,8 +252,6 @@ def main():
 
 	for i in range(toal_num_video):
 
-		
-
 		input_data = torch.stack([transform(frame) for frame in all_frames[i]])
 
 		input_var = Variable(input_data.view(-1, 3, input_data.size(2), input_data.size(3)), volatile=True).cuda()
@@ -288,10 +286,10 @@ def main():
 		print('video {} done, total {}/{}, moving Prec@1 {:.3f} Prec@5 {:.3f}'.format(i, i+1,
             toal_num_video,top1.avg, top5.avg))
 
-		if i >= 1500:
-			np.save('./saved_features/test/features_{}.npy'.format(i), features_np)
-			np.save('./saved_features/test/name_{}.npy'.format(i), all_frame_names[i])
-			np.save('./saved_features/test/label_{}.npy'.format(i), per_video_label)
+		
+		np.save('./saved_features/test/features_{}.npy'.format('%05d'%i), features_np)
+		np.save('./saved_features/test/name_{}.npy'.format('%05d'%i), all_frame_names[i])
+		np.save('./saved_features/test/label_{}.npy'.format('%05d'%i), per_video_label)
  #    # all_logits = np.asarray(all_logits_list)
  #    # all_frame_names = np.asarray(all_frame_names)
  #    # all_labels = np.asarray(all_labels)
