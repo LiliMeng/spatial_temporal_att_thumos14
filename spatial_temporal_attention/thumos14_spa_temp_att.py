@@ -184,7 +184,9 @@ def train(batch_size,
 
 	train_accuracy = 100.0 * corrects/batch_size
 
-	return mask, final_loss, regularization_loss, tv_loss, contrast_loss, train_accuracy, att_weight, corrects
+	train_pred_label = torch.max(logits, 1)[1].view(train_label.size()).cpu().data.numpy()
+
+	return mask, train_pred_label, final_loss, regularization_loss, tv_loss, contrast_loss, train_accuracy, att_weight, corrects
 
 def test_step(batch_size,
 			 batch_x,
@@ -339,6 +341,8 @@ def main():
 
 		train_name_list =[]
 		train_spa_att_weights_list = []
+		train_gt_label_list = []
+		train_pred_label_list = []
 		total_train_corrects = 0
 		epoch_train_loss = 0 
 		epoch_train_reg_loss = 0 
@@ -348,14 +352,16 @@ def main():
 			
 			train_batch_feature = train_sample['feature'].transpose(1,2)
 			train_batch_label = train_sample['label']
+			train_gt_label_list.append(train_batch_label[:, 0].numpy())
 			train_batch_feature = Variable(train_batch_feature).cuda().float()
 			train_batch_label = Variable(train_batch_label[:,0]).cuda().long()
 			
-			train_mask, train_loss, train_reg_loss, train_tv_loss, train_contrast_loss, train_accuracy, train_spa_att_weights, train_corrects = train(FLAGS.train_batch_size, train_batch_feature, train_batch_label, lstm_action, model_optimizer, criterion)
+			train_mask, train_pred_label, train_loss, train_reg_loss, train_tv_loss, train_contrast_loss, train_accuracy, train_spa_att_weights, train_corrects = train(FLAGS.train_batch_size, train_batch_feature, train_batch_label, lstm_action, model_optimizer, criterion)
 			#print("train_spa_att_weights[0:5] ",train_spa_att_weights[0:5])
 			train_batch_name = np.swapaxes(np.asarray(train_batch_name),0,1)
 			train_name_list.append(train_batch_name)
 			train_spa_att_weights_list.append(train_mask)
+			train_pred_label_list.append(train_pred_label)
 			avg_train_accuracy+=train_accuracy
 			epoch_train_loss += train_loss
 			epoch_train_reg_loss += train_reg_loss
@@ -364,6 +370,7 @@ def main():
 			print("batch {}, train_acc: {} ".format(i, train_accuracy))
 			total_train_corrects+= train_corrects
 			
+			
 		train_spa_att_weights_np = torch.cat(train_spa_att_weights_list, dim=0)
 		avg_train_corrects = total_train_corrects *100 /2137
 		epoch_train_loss = epoch_train_loss/num_step_per_epoch_train
@@ -371,8 +378,11 @@ def main():
 		epoch_train_tv_loss = epoch_train_tv_loss/num_step_per_epoch_train
 		epoch_train_contrast_loss = epoch_train_contrast_loss/num_step_per_epoch_train
 		#print("train_spa_att_weights_np.shape: ",train_spa_att_weights_np.shape)
-		np.save(saved_weights_folder+"/train_name.npy", np.asarray(train_name_list))
-		np.save(saved_weights_folder+"/train_att_weights.npy", train_spa_att_weights_np.cpu().data.numpy())
+		np.save(saved_weights_folder+"/train_name_{}.npy".format('%03d'%epoch_num), np.asarray(train_name_list))
+		np.save(saved_weights_folder+"/train_att_weights_{}.npy".format('%03d'%epoch_num), train_spa_att_weights_np.cpu().data.numpy())
+		np.save(saved_weights_folder+"/train_pred_label_{}.npy".format('%03d'%epoch_num), np.asarray(train_pred_label_list))
+		np.save(saved_weights_folder+"/train_gt_label_{}.npy".format('%03d'%epoch_num), np.asarray(train_gt_label_list))
+
 		final_train_accuracy = avg_train_accuracy/num_step_per_epoch_train
 		print("epoch: "+str(epoch_num)+ " train accuracy: " + str(final_train_accuracy))
 		print("epoch: "+str(epoch_num)+ " train corrects: " + str(avg_train_corrects))
@@ -392,6 +402,8 @@ def main():
 		lstm_action.eval()
 		test_name_list =[]
 		test_tmp_att_weights_list = []
+		test_pred_label_list = []
+		test_gt_label_list = []
 		total_test_corrects = 0
 		epoch_test_loss = 0
 		epoch_test_reg_loss =0
@@ -401,6 +413,7 @@ def main():
 		
 			test_batch_feature = test_sample['feature'].transpose(1,2)
 			test_batch_label = test_sample['label']
+			test_gt_label_list.append(test_batch_label[:, 0].numpy())
 			
 			test_batch_feature = Variable(test_batch_feature, volatile=True).cuda().float()
 			test_batch_label = Variable(test_batch_label[:,0], volatile=True).cuda().long()
@@ -410,7 +423,9 @@ def main():
 			test_batch_name = np.swapaxes(np.asarray(test_batch_name),0,1)
 			test_name_list.append(test_batch_name)
 			test_tmp_att_weights_list.append(test_temp_att_weights)
+			test_pred_label_list.append(test_pred_label)
 			
+
 			print("i: {} batch_test_accuracy: {} ".format(i, test_accuracy))
 			total_test_corrects += test_corrects 
 
@@ -422,6 +437,7 @@ def main():
 			epoch_test_tv_loss += test_tv_loss
 			epoch_test_contrast_loss += test_contrast_loss
 
+
 		avg_test_corrects = total_test_corrects*100/2326
 
 		epoch_test_loss = epoch_test_loss/num_step_per_epoch_test
@@ -430,9 +446,11 @@ def main():
 		epoch_test_contrast_loss = epoch_test_contrast_loss/num_step_per_epoch_test
 		test_tmp_att_weights_np = torch.cat(test_tmp_att_weights_list, dim=0)
 		#print("test_spa_att_weights_np.shape ", test_spa_att_weights_np.shape)
-		np.save(saved_weights_folder+"/test_name.npy", np.asarray(test_name_list))
-		np.save(saved_weights_folder+"/test_att_weights.npy", test_tmp_att_weights_np.cpu().data.numpy())
-	
+		np.save(saved_weights_folder+"/test_name_{}.npy".format('%03d'%epoch_num), np.asarray(test_name_list))
+		np.save(saved_weights_folder+"/test_att_weights_{}.npy".format('%03d'%epoch_num), test_tmp_att_weights_np.cpu().data.numpy())
+		np.save(saved_weights_folder+"/test_pred_label_{}.npy".format('%03d'%epoch_num), np.asarray(test_pred_label_list))
+		np.save(saved_weights_folder+"/test_gt_label_{}.npy".format('%03d'%epoch_num), np.asarray(test_gt_label_list))
+
 		final_test_accuracy = avg_test_accuracy/num_step_per_epoch_test
 		print("epoch: "+str(epoch_num)+ " test accuracy: " + str(final_test_accuracy))
 		print("epoch: "+str(epoch_num)+ " test corrects: " + str(avg_test_corrects))

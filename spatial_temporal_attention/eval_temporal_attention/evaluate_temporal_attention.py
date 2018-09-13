@@ -25,9 +25,6 @@ gt_labels = np.load(gt_label_file)
 
 pred_labels = np.concatenate(pred_labels, axis=0)
 gt_labels = np.concatenate(gt_labels, axis=0)
-print("pred_labels.shape: ", pred_labels.shape)
-print("gt_labels.shape: ", gt_labels.shape)
-
 
 annotated_img_list = np.load("/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/thumos14_list/test_img_index_list.npy")
 
@@ -44,27 +41,32 @@ for i in range(attention_weights.shape[0]):
 		print("video_name: ", test_img_names[i][0].split('/')[-2])
 		good_img_index = []
 		all_img_index = []
+		print("attention_weights[i]: ")
+		print(attention_weights[i])
 		for j in range(attention_weights.shape[1]):
 			img_index = int(test_img_names[i][j].split('/')[-1].split('.jpg')[0])
 			all_img_index.append(img_index)
-			if attention_weights[i][j] > 0.02:
+			if attention_weights[i][j] > 0.023:
 				good_img_index.append(img_index)
 
 		print("len(good_img_index): ", len(good_img_index))
+		print("len(annotated_img_list[i]): ", len(annotated_img_list[i]))
+		print("good_img_index: ", good_img_index)
+		print("annotated_img_list[i]: ", annotated_img_list[i])
 		count_in_tmp_annot_num =0
 		for j in range(len(good_img_index)):
 			index = good_img_index[j]
 			if index in annotated_img_list[i]:
 				count_in_tmp_annot_num+=1
 
-		print("count_in_tmp_annot_num: ", count_in_tmp_annot_num)	
-		print("len(annotated_img_list[i]: ", len(annotated_img_list[i]))
+		print("count_in_tmp_annot_num: ", count_in_tmp_annot_num)
 		IOU = count_in_tmp_annot_num/len(annotated_img_list[i])
 		print("IOU: ", IOU)
 
 		if IOU > IOU_threshold:
 			IOU_05_count+=1
 
+		
 print("the number of correct prediction: ", correct_pred_count)
 print("percentage of correct prediction: ", correct_pred_count/attention_weights.shape[0])
 print("the number of IOU is larger than {} is: {}".format(IOU_threshold, IOU_05_count))
