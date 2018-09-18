@@ -165,19 +165,15 @@ class Action_Att_LSTM(nn.Module):
 
 		mask_input_x_org = mask * input_x
 		
-		#weighted_mask_input_x = mask_input_x*temporal_att_weight #[30x50x2048x7x7],[30x50x1x1x1] 
-		mask_input_x_for_att = torch.mean(mask_input_x_org, dim=4)
-		mask_input_x_for_att = torch.mean(mask_input_x_for_att, dim=3)
+		
 		h0, c0 = self.get_start_states(mask_input_x_org)
 		
 		output_list = []
 		temporal_att_weight_list = []
 		for i in range(50):
 			
-			#print("mask_input_x_for_att.shape: ", mask_input_x_for_att.shape)
 			mask_input_x_for_att_per_frame = mask_input_x_org[:,i,:,:,:]
-			#print("mask_input_x_for_att_per_frame.shape: ", mask_input_x_for_att_per_frame.shape)
-			
+		
 			temporal_att_weight = self.temporal_attention_layer(mask_input_x_for_att_per_frame, h0)
 		
 			squeezed_temporal_att_weight = temporal_att_weight.squeeze(dim=1)
@@ -187,14 +183,11 @@ class Action_Att_LSTM(nn.Module):
 			weighted_mask_input_per_frame = mask_input_x_for_att_per_frame*temporal_att_weight
 			
 			c0, h0 = self.convlstm_cell(weighted_mask_input_per_frame, (h0, c0)) 
-			#h0, c0 = self.lstm_cell(mean_weighted_mask_input_per_frame, (h0, c0))
-			output = torch.mean(torch.mean(c0, dim=3), dim=2)
-			output = self.fc_out(output) 
-			output_list.append(output)
+			
+		output = torch.mean(torch.mean(c0, dim=3), dim=2)
+		final_output = self.fc_out(output) 
 		
-		final_output = torch.mean(torch.stack(output_list, dim=0),0)
-		temporal_att_weight =Variable(torch.from_numpy(np.asarray(temporal_att_weight_list).squeeze().transpose(0,1))).cuda()
-		
+		temporal_att_weight =Variable(torch.from_numpy(np.asarray(temporal_att_weight_list).squeeze())).transpose(0,1).cuda()
 
 		return final_output, temporal_att_weight, mask, tv_loss, contrast_loss
 
@@ -303,7 +296,7 @@ def main():
 
 	# load train data
 
-	train_data_dir = '/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/val/'
+	train_data_dir = '/ssd/Lili/thumos14/saved_features/val/'
 	train_csv_file = './feature_list/feature_val_list.csv'
 
 	train_data_loader = get_loader(data_dir=train_data_dir, 
@@ -312,7 +305,7 @@ def main():
 							mode ='train',
 							dataset='thumos14')
 	# load test data
-	test_data_dir = '/media/dataDisk/Video/spatial_temporal_att_thumos14/finetune_network_extract_features/saved_features/test/'
+	test_data_dir = '/ssd/Lili/thumos14/saved_features/test/'
 	test_csv_file = './feature_list/feature_test_list.csv'
 	test_data_loader = get_loader(data_dir=test_data_dir, 
 							csv_file = test_csv_file, 
@@ -452,6 +445,7 @@ def main():
 			print("batch {}, train_acc: {} ".format(i, train_accuracy))
 			total_train_corrects+= train_corrects
 			
+
 			
 		train_spa_att_weights_np = torch.cat(train_spa_att_weights_list, dim=0)
 		avg_train_corrects = total_train_corrects *100 /2137
@@ -518,7 +512,6 @@ def main():
 			epoch_test_reg_loss += test_reg_loss
 			epoch_test_tv_loss += test_tv_loss
 			epoch_test_contrast_loss += test_contrast_loss
-
 
 		avg_test_corrects = total_test_corrects*100/2326
 
