@@ -123,8 +123,8 @@ class Action_Att_LSTM(nn.Module):
 	  	:return:
 	  	"""
 	
-	  	features_tmp = torch.mean(torch.mean(features, dim=3), dim=2)
-	  	hiddens_tmp = torch.mean(torch.mean(hiddens, dim=3), dim=2)
+	  	features_tmp = torch.mean(torch.mean(features, dim=3), dim=2) #[30x2048x7x7]
+	  	hiddens_tmp = torch.mean(torch.mean(hiddens, dim=3), dim=2) #[30x512x7x7]
 	  	att_fea = self.att_feature_w(features_tmp)
 	  	#att_fea = self.att_vw_bn(att_fea)
 	  	att_h = self.att_hidden_w(hiddens_tmp)
@@ -132,10 +132,7 @@ class Action_Att_LSTM(nn.Module):
 	  	att_out = att_fea + att_h 
 	  	#att_out = att_h
 
-	  	
-	  	att_weight = F.softmax(att_out, dim=1)
-
-	  	return att_weight
+	  	return att_out
 
 	def forward(self, input_x):
 
@@ -169,25 +166,31 @@ class Action_Att_LSTM(nn.Module):
 		h0, c0 = self.get_start_states(mask_input_x_org)
 		
 		output_list = []
-		temporal_att_weight_list = []
+		
 		for i in range(50):
+			temporal_att_weight_list = []
+			for j in range(50):
+				mask_input_x_for_att_per_frame = mask_input_x_org[:,j,:,:,:]
+				temporal_att_weight = self.temporal_attention_layer(mask_input_x_for_att_per_frame, h0)
+
+				squeezed_temporal_att_weight = temporal_att_weight.squeeze(dim=1)
+				temporal_att_weight_list.append(squeezed_temporal_att_weight.cpu().data.numpy())
 			
-			mask_input_x_for_att_per_frame = mask_input_x_org[:,i,:,:,:]
+				temporal_att_weight = temporal_att_weight.view(-1, 1, 1,1)
+				
 		
-			temporal_att_weight = self.temporal_attention_layer(mask_input_x_for_att_per_frame, h0)
+			temporal_att_weight =Variable(torch.from_numpy(np.asarray(temporal_att_weight_list).squeeze())).transpose(0,1).cuda()
+			
+			temporal_att_weight = F.softmax(temporal_att_weight, dim=1) #[30, 50]
+			weighted_mask_input_all_frame = torch.sum(mask_input_x_org*(temporal_att_weight.view(-1,50,1,1,1)), dim=1)
+
+			h0, c0 = self.convlstm_cell(weighted_mask_input_all_frame, (h0, c0)) 
+			output = torch.mean(torch.mean(h0, dim=3), dim=2)
+			output = self.fc_out(output)
 		
-			squeezed_temporal_att_weight = temporal_att_weight.squeeze(dim=1)
-			temporal_att_weight_list.append(squeezed_temporal_att_weight.cpu().data.numpy())
-			
-			temporal_att_weight = temporal_att_weight.view(-1, 1, 1,1)
-			weighted_mask_input_per_frame = mask_input_x_for_att_per_frame*temporal_att_weight
-			
-			c0, h0 = self.convlstm_cell(weighted_mask_input_per_frame, (h0, c0)) 
-			
-		output = torch.mean(torch.mean(c0, dim=3), dim=2)
-		final_output = self.fc_out(output) 
+			output_list.append(output)
 		
-		temporal_att_weight =Variable(torch.from_numpy(np.asarray(temporal_att_weight_list).squeeze())).transpose(0,1).cuda()
+		final_output = torch.mean(torch.stack(output_list, dim=0),0)
 
 		return final_output, temporal_att_weight, mask, tv_loss, contrast_loss
 
@@ -560,9 +563,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='thumos14',
                         help='dataset: "thumos14"')
-    parser.add_argument('--train_batch_size', type=int, default=30,
+    parser.add_argument('--train_batch_size', type=int, default=20,
                     	help='train_batch_size: [64]')
-    parser.add_argument('--test_batch_size', type=int, default=30,
+    parser.add_argument('--test_batch_size', type=int, default=20,
                     	help='test_batch_size: [64]')
     parser.add_argument('--max_epoch', type=int, default=200,
                     	help='max number of training epoch: [60]')
