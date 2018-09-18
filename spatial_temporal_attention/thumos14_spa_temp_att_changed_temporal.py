@@ -48,7 +48,7 @@ class Action_Att_LSTM(nn.Module):
 		self.fc = nn.Linear(hidden_size, output_size)
 		self.fc_attention = nn.Linear(hidden_size, 1)
 	
-		self.att_feature_w = nn.Linear(2048*49, 1, bias=False)
+		self.att_feature_w = nn.Linear(2048, 1, bias=False)
 		self.att_hidden_w = nn.Linear(hidden_size, 1, bias=False)
 		self.fc1 = nn.Linear(2048, output_size)
 		self.fc_out = nn.Linear(hidden_size, output_size)
@@ -57,8 +57,22 @@ class Action_Att_LSTM(nn.Module):
 		self.fc_h0_0 = nn.Linear(2048, 1024)
 		self.fc_h0_1 = nn.Linear(1024, 512)
 
+		self.c0_conv = nn.Sequential(
+				nn.Conv2d(2048, 1024, kernel_size=3, padding=1, bias=False),
+				nn.BatchNorm2d(1024),
+				nn.ReLU(),
+				nn.Conv2d(1024, 512, kernel_size=3, padding=1, bias=False),
+				nn.BatchNorm2d(512),
+				nn.ReLU())
 
-		
+		self.h0_conv = nn.Sequential(
+				nn.Conv2d(2048, 1024, kernel_size=3, padding=1, bias=False),
+				nn.BatchNorm2d(1024),
+				nn.ReLU(),
+				nn.Conv2d(1024, 512, kernel_size=3, padding=1, bias=False),
+				nn.BatchNorm2d(512),
+				nn.ReLU())
+
 		self.input_size = input_size
 
 		self.mask_conv = nn.Sequential(
@@ -92,15 +106,14 @@ class Action_Att_LSTM(nn.Module):
                  			return_all_layers=True)
 
 	def get_start_states(self, input_x):
-
-		h0 = torch.mean(input_x,1)
-		h0 = self.fc_h0_0(h0)
-		h0 = self.fc_h0_1(h0)
-
-		c0 = torch.mean(input_x,1)
-		c0 = self.fc_c0_0(c0)
-		c0 = self.fc_c0_1(c0)
 		
+		h0 = torch.mean(input_x, dim=1)
+
+		c0 = torch.mean(input_x, dim=1)
+
+		h0 = self.h0_conv(h0)
+		c0 = self.c0_conv(c0)
+
 		return h0, c0
 	
 	def temporal_attention_layer(self, features, hiddens):
@@ -109,11 +122,12 @@ class Action_Att_LSTM(nn.Module):
 	  	: param hiddens: (batch_size, hidden_dim)
 	  	:return:
 	  	"""
-	  	#print("features.shape in temporal_attention_layer: ", features.shape)
-	  	features_tmp = features.contiguous().view(-1, 2048*7*7)
+	
+	  	features_tmp = torch.mean(torch.mean(features, dim=3), dim=2)
+	  	hiddens_tmp = torch.mean(torch.mean(hiddens, dim=3), dim=2)
 	  	att_fea = self.att_feature_w(features_tmp)
 	  	#att_fea = self.att_vw_bn(att_fea)
-	  	att_h = self.att_hidden_w(hiddens)
+	  	att_h = self.att_hidden_w(hiddens_tmp)
 	  	#att_h = self.att_hw_bn(att_h)
 	  	att_out = att_fea + att_h 
 	  	#att_out = att_h
@@ -154,8 +168,7 @@ class Action_Att_LSTM(nn.Module):
 		#weighted_mask_input_x = mask_input_x*temporal_att_weight #[30x50x2048x7x7],[30x50x1x1x1] 
 		mask_input_x_for_att = torch.mean(mask_input_x_org, dim=4)
 		mask_input_x_for_att = torch.mean(mask_input_x_for_att, dim=3)
-		h0, c0 = self.get_start_states(mask_input_x_for_att)
-		
+		h0, c0 = self.get_start_states(mask_input_x_org)
 		
 		output_list = []
 		temporal_att_weight_list = []
@@ -173,10 +186,10 @@ class Action_Att_LSTM(nn.Module):
 			temporal_att_weight = temporal_att_weight.view(-1, 1, 1,1)
 			weighted_mask_input_per_frame = mask_input_x_for_att_per_frame*temporal_att_weight
 			
-			mean_weighted_mask_input_per_frame = torch.mean(torch.mean(weighted_mask_input_per_frame, 3), 2)
-			#c0, h0 = self.convlstm_cell(mean_weighted_mask_input_per_frame, (h0, c0)) 
-			h0, c0 = self.lstm_cell(mean_weighted_mask_input_per_frame, (h0, c0))
-			output = self.fc_out(h0) 
+			c0, h0 = self.convlstm_cell(weighted_mask_input_per_frame, (h0, c0)) 
+			#h0, c0 = self.lstm_cell(mean_weighted_mask_input_per_frame, (h0, c0))
+			output = torch.mean(torch.mean(c0, dim=3), dim=2)
+			output = self.fc_out(output) 
 			output_list.append(output)
 		
 		final_output = torch.mean(torch.stack(output_list, dim=0),0)
