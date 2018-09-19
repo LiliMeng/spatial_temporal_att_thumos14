@@ -42,8 +42,8 @@ class Action_Att_LSTM(nn.Module):
 		self.att_vw = nn.Linear(49*2048, 49, bias=False)
 		self.att_hw = nn.Linear(hidden_size, 49, bias=False)
 		self.att_bias = nn.Parameter(torch.zeros(49))
-		self.att_vw_bn= nn.BatchNorm1d(49)
-		self.att_hw_bn= nn.BatchNorm1d(49)
+		self.att_vw_bn= nn.BatchNorm1d(1)
+		self.att_hw_bn= nn.BatchNorm1d(1)
 		self.hidden_size = hidden_size
 		self.fc = nn.Linear(hidden_size, output_size)
 		self.fc_attention = nn.Linear(hidden_size, 1)
@@ -126,9 +126,9 @@ class Action_Att_LSTM(nn.Module):
 	  	features_tmp = torch.mean(torch.mean(features, dim=3), dim=2) #[30x2048x7x7]
 	  	hiddens_tmp = torch.mean(torch.mean(hiddens, dim=3), dim=2) #[30x512x7x7]
 	  	att_fea = self.att_feature_w(features_tmp)
-	  	#att_fea = self.att_vw_bn(att_fea)
+	  	att_fea = self.att_vw_bn(att_fea)
 	  	att_h = self.att_hidden_w(hiddens_tmp)
-	  	#att_h = self.att_hw_bn(att_h)
+	  	att_h = self.att_hw_bn(att_h)
 	  	att_out = att_fea + att_h 
 	  	#att_out = att_h
 
