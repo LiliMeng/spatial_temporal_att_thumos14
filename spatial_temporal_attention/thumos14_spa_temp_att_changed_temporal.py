@@ -126,9 +126,9 @@ class Action_Att_LSTM(nn.Module):
 	  	features_tmp = torch.mean(torch.mean(features, dim=3), dim=2) #[30x2048x7x7]
 	  	hiddens_tmp = torch.mean(torch.mean(hiddens, dim=3), dim=2) #[30x512x7x7]
 	  	att_fea = self.att_feature_w(features_tmp)
-	  	att_fea = self.att_vw_bn(att_fea)
+	  	#att_fea = self.att_vw_bn(att_fea)
 	  	att_h = self.att_hidden_w(hiddens_tmp)
-	  	att_h = self.att_hw_bn(att_h)
+	  	#att_h = self.att_hw_bn(att_h)
 	  	att_out = att_fea + att_h 
 	  	#att_out = att_h
 
@@ -167,17 +167,16 @@ class Action_Att_LSTM(nn.Module):
 		
 		output_list = []
 		
+		avg_temporal_att_weight_list = [] 
 		for i in range(50):
 			temporal_att_weight_list = []
 			for j in range(50):
 				mask_input_x_for_att_per_frame = mask_input_x_org[:,j,:,:,:]
-				temporal_att_weight = self.temporal_attention_layer(mask_input_x_for_att_per_frame, h0)
+				single_temporal_att_weight = self.temporal_attention_layer(mask_input_x_for_att_per_frame, h0)
 
-				squeezed_temporal_att_weight = temporal_att_weight.squeeze(dim=1)
+				squeezed_temporal_att_weight = single_temporal_att_weight.squeeze(dim=1)
 				temporal_att_weight_list.append(squeezed_temporal_att_weight.cpu().data.numpy())
 			
-				temporal_att_weight = temporal_att_weight.view(-1, 1, 1,1)
-				
 		
 			temporal_att_weight =Variable(torch.from_numpy(np.asarray(temporal_att_weight_list).squeeze())).transpose(0,1).cuda()
 			
@@ -186,13 +185,17 @@ class Action_Att_LSTM(nn.Module):
 
 			h0, c0 = self.convlstm_cell(weighted_mask_input_all_frame, (h0, c0)) 
 			output = torch.mean(torch.mean(h0, dim=3), dim=2)
-			output = self.fc_out(output)
 		
 			output_list.append(output)
-		
-		final_output = torch.mean(torch.stack(output_list, dim=0),0)
+			avg_temporal_att_weight_list.append(temporal_att_weight)
 
-		return final_output, temporal_att_weight, mask, tv_loss, contrast_loss
+		avg_temporal_att_weight = torch.mean(torch.stack(avg_temporal_att_weight_list, dim=0),0 )
+		
+		output = torch.mean(torch.stack(output_list, dim=0),0)
+
+		final_output = self.fc_out(output)
+
+		return final_output, avg_temporal_att_weight, mask, tv_loss, contrast_loss
 
 	def init_hidden(self, batch_size):
 		result = Variable(torch.zeros(1, batch_size, self.hidden_size))
