@@ -578,7 +578,7 @@ if __name__ == '__main__':
     					help='not use change learning rate by default', action='store_true')
     parser.add_argument('--use_regularizer', dest='use_regularizer',
     					help='use regularizer', action='store_false')
-    parser.add_argument('--hp_reg_factor', type=float, default=0,
+    parser.add_argument('--hp_reg_factor', type=float, default=1,
                         help='multiply factor for regularization. [0]')
     parser.add_argument('--tv_reg_factor', type=float, default=0.00001,
                         help='multiply factor for total variation regularization. [0.005]')
